@@ -62,7 +62,7 @@ namespace SCREEN_SAVER
     {
         private System.Windows.Forms.Timer timer;
         private int x = 0, y = 0;
-        private int dx = 2, dy = 2;
+        private int dx = 4, dy = 4;
 
         public ScreenSaverForm()
         {
@@ -85,8 +85,8 @@ namespace SCREEN_SAVER
             x += dx;
             y += dy;
 
-            if (x < 0 || x > this.Width - 200) dx = -dx;
-            if (y < 0 || y > this.Height - 50) dy = -dy;
+            if (x < 0 || x > this.Width - 100) dx = -dx;
+            if (y < 0 || y > this.Height - 30) dy = -dy;
 
             this.Invalidate();
         }
@@ -94,7 +94,7 @@ namespace SCREEN_SAVER
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            e.Graphics.DrawString("My Screensaver", new Font("Arial", 48), Brushes.White, x, y);
+            e.Graphics.DrawString("My Screensaver", new Font("Arial", 24), Brushes.White, x, y);
         }
     }
 
