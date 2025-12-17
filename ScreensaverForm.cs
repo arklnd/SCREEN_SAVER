@@ -122,6 +122,27 @@ namespace SCREEN_SAVER
             return new PointF(xp, yp);
         }
 
+        private Color ColorFromHsv(float hue, float saturation, float value)
+        {
+            int hi = (int)(hue / 60) % 6;
+            float f = hue / 60 - hi;
+            float p = value * (1 - saturation);
+            float q = value * (1 - f * saturation);
+            float t = value * (1 - (1 - f) * saturation);
+            int r, g, b;
+            switch (hi)
+            {
+                case 0: r = (int)(value * 255); g = (int)(t * 255); b = (int)(p * 255); break;
+                case 1: r = (int)(q * 255); g = (int)(value * 255); b = (int)(p * 255); break;
+                case 2: r = (int)(p * 255); g = (int)(value * 255); b = (int)(t * 255); break;
+                case 3: r = (int)(p * 255); g = (int)(q * 255); b = (int)(value * 255); break;
+                case 4: r = (int)(t * 255); g = (int)(p * 255); b = (int)(value * 255); break;
+                case 5: r = (int)(value * 255); g = (int)(p * 255); b = (int)(q * 255); break;
+                default: r = g = b = 0; break;
+            }
+            return Color.FromArgb(r, g, b);
+        }
+
         private void AnimationLoop()
         {
             while (isRunning)
@@ -188,7 +209,11 @@ namespace SCREEN_SAVER
 
                 PointF[] points = { p1, p2, p3, p4 };
 
-                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.FromArgb(128, Color.DarkGray), Color.FromArgb(128, Color.LightGray)))
+                float hue = (uu / (2 * PI)) * 360;
+                Color baseColor = ColorFromHsv(hue, 1.0f, 0.8f);
+                Color lightColor = ControlPaint.Light(baseColor, 0.3f);
+
+                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.FromArgb(128, baseColor), Color.FromArgb(128, lightColor)))
                 {
                     e.Graphics.FillPolygon(brush, points);
                 }
