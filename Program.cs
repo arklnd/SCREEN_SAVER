@@ -1,113 +1,87 @@
 using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace SCREEN_SAVER
 {
     static class Program
     {
-        // Import for preview window handling
-        [DllImport("user32.dll")]
-        public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
-
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
         [STAThread]
         static void Main(string[] args)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-
-            // Parse command line arguments
+            
             if (args.Length > 0)
             {
-                string arg = args[0].ToLower().Trim();
+                string firstArgument = args[0].ToLower().Trim();
+                string secondArgument = null;
 
-                if (arg.StartsWith("/c")) // Configuration dialog
+                // Handle cases where arguments are separated by colon
+                if (firstArgument.Length > 2)
                 {
-                    MessageBox.Show("No settings available.","Screensaver Config");
-                    return;
+                    secondArgument = firstArgument.Substring(3).Trim();
+                    firstArgument = firstArgument.Substring(0, 2);
                 }
-                else if (arg.StartsWith("/p")) // Preview mode
+                else if (args.Length > 1)
                 {
-                    if (args.Length > 1 && int.TryParse(args[1], out int previewWnd))
-                    {
-                        ScreenSaverPreview preview = new ScreenSaverPreview(new IntPtr(previewWnd));
-                        Application.Run(preview);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Invalid preview window handle.");
-                    }
+                    secondArgument = args[1];
                 }
-                else if (arg.StartsWith("/s")) // Fullscreen screensaver
+
+                switch (firstArgument)
                 {
-                    ScreenSaverForm screensaver = new ScreenSaverForm();
-                    Application.Run(screensaver);
-                }
-                else
-                {
-                    // Unknown argument, run screensaver by default
-                    Application.Run(new ScreenSaverForm());
+                    case "/c":
+                        // Configuration dialog
+                        ShowSettings();
+                        break;
+                    case "/p":
+                        // Preview mode
+                        if (secondArgument != null)
+                        {
+                            ShowPreview(secondArgument);
+                        }
+                        break;
+                    case "/s":
+                        // Full-screen screensaver mode
+                        ShowScreensaver();
+                        break;
+                    default:
+                        // Undefined argument
+                        MessageBox.Show("Invalid command line argument.", "Expanding Circle Screensaver",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
                 }
             }
             else
             {
-                // No arguments, run screensaver
-                Application.Run(new ScreenSaverForm());
+                // No arguments - run as screensaver
+                ShowScreensaver();
             }
         }
-    }
 
-    public class ScreenSaverForm : Form
-    {
-        private System.Windows.Forms.Timer timer;
-        private int x = 0, y = 0;
-        private int dx = 4, dy = 4;
-
-        public ScreenSaverForm()
+        static void ShowSettings()
         {
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.WindowState = FormWindowState.Maximized;
-            this.BackColor = Color.Black;
-            this.TopMost = true;
-
-            this.MouseMove += (s, e) => Application.Exit();
-            this.KeyDown += (s, e) => Application.Exit();
-
-            timer = new System.Windows.Forms.Timer();
-            timer.Interval = 50;
-            timer.Tick += Timer_Tick;
-            timer.Start();
+            MessageBox.Show("This screensaver has no configurable settings.",
+                "Expanding Circle Screensaver",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void Timer_Tick(object sender, EventArgs e)
+        static void ShowPreview(string previewHandle)
         {
-            x += dx;
-            y += dy;
-
-            if (x < 0 || x > this.Width - 100) dx = -dx;
-            if (y < 0 || y > this.Height - 30) dy = -dy;
-
-            this.Invalidate();
+            IntPtr handle = new IntPtr(long.Parse(previewHandle));
+            Application.Run(new ScreensaverForm(handle, true));
         }
 
-        protected override void OnPaint(PaintEventArgs e)
+        static void ShowScreensaver()
         {
-            base.OnPaint(e);
-            e.Graphics.DrawString("My Screensaver", new Font("Arial", 24), Brushes.White, x, y);
-        }
-    }
-
-    public class ScreenSaverPreview : Form
-    {
-        public ScreenSaverPreview(IntPtr previewWnd)
-        {
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.Width = 150;
-            this.Height = 120;
-
-            // Set the parent window for preview rendering
-            Program.SetParent(this.Handle, previewWnd);
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                ScreensaverForm screensaver = new ScreensaverForm(screen.Bounds);
+                screensaver.Show();
+            }
+            Application.Run();
         }
     }
 }
