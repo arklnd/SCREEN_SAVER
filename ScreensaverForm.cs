@@ -183,10 +183,17 @@ namespace SCREEN_SAVER
 
             // Draw the ball
             PointF ballPos = GetPoint(u, 0);
-            using (SolidBrush ballBrush = new SolidBrush(Color.Yellow))
+            float ballRadius = 50;
+            using (GraphicsPath ballPath = new GraphicsPath())
             {
-                float ballRadius = 80;
-                e.Graphics.FillEllipse(ballBrush, ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
+                {
+                    ballBrush.CenterColor = Color.Yellow;
+                    ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
+                    ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                    e.Graphics.FillPath(ballBrush, ballPath);
+                }
             }
         }
 
