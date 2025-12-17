@@ -26,6 +26,7 @@ namespace SCREEN_SAVER
         private PointF centerPoint;
         private Thread animationThread;
         private bool isRunning = true;
+        private float du = 0.1f;
 
         // For smooth animation
         // private BufferedGraphicsContext context;
@@ -158,7 +159,6 @@ namespace SCREEN_SAVER
             }
 
             // Draw the Möbius strip
-            float du = 0.1f;
             for (float uu = 0; uu < 2 * PI; uu += du)
             {
                 float width = GetWidth(uu);
@@ -240,6 +240,9 @@ namespace SCREEN_SAVER
                 // Update rotation and floating
                 angle += floatSpeed;
                 floatTime += floatSpeed2;
+
+                // Update segment size for varying number of plates
+                du = 0.05f + 0.04f * (float)Math.Sin(floatTime * 0.3f);
 
                 // Redraw on UI thread
                 this.Invoke(new Action(Invalidate));
