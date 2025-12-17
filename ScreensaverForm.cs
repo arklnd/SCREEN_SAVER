@@ -125,7 +125,7 @@ namespace SCREEN_SAVER
 
         private float GetWidth(float uu)
         {
-            return 1f + 0.5f * (float)Math.Sin(uu + floatTime * 2);
+            return 1f + 0.15625f * (float)Math.Sin(uu + floatTime * 2);
         }
 
         protected override void OnPaint(PaintEventArgs e)
