@@ -134,10 +134,79 @@ namespace SCREEN_SAVER
 
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-            // Draw space background
-            using (LinearGradientBrush bgBrush = new LinearGradientBrush(ClientRectangle, Color.Black, Color.DarkBlue, LinearGradientMode.Vertical))
+            // Draw space background with stars
+            using (SolidBrush bgBrush = new SolidBrush(Color.Black))
             {
                 e.Graphics.FillRectangle(bgBrush, ClientRectangle);
+            }
+
+            // Draw stars with parallax movement and glow effect
+            Random rand = new Random(42); // Fixed seed for consistent star positions
+            
+            // Three layers of stars for parallax effect
+            for (int layer = 0; layer < 3; layer++)
+            {
+                float parallaxSpeed = 0.3f + layer * 0.4f; // Farther layers move slower
+                float baseBrightness = 100 + layer * 30; // Farther layers are dimmer
+                
+                for (int i = 0; i < (layer == 0 ? 100 : layer == 1 ? 60 : 40); i++)
+                {
+                    // Generate base position
+                    int baseX = rand.Next(ClientRectangle.Width);
+                    int baseY = rand.Next(ClientRectangle.Height);
+                    
+                    // Apply parallax movement based on animation time
+                    float offsetX = (float)Math.Sin(floatTime * parallaxSpeed + i * 0.05f) * 50 * (3 - layer);
+                    float offsetY = (float)Math.Cos(floatTime * parallaxSpeed * 0.7f + i * 0.03f) * 30 * (3 - layer);
+                    
+                    int x = (int)(baseX + offsetX) % ClientRectangle.Width;
+                    int y = (int)(baseY + offsetY) % ClientRectangle.Height;
+                    
+                    // Handle wraparound
+                    if (x < 0) x += ClientRectangle.Width;
+                    if (y < 0) y += ClientRectangle.Height;
+                    
+                    // Vary star brightness based on position and time for twinkling effect
+                    float twinkle = (float)Math.Sin(floatTime * 2 + i * 0.1f + layer) * 0.5f + 0.5f;
+                    int brightness = (int)(baseBrightness + twinkle * (255 - baseBrightness));
+                    
+                    // Draw glow effect (multiple concentric circles with decreasing opacity)
+                    for (int glow = 3; glow >= 0; glow--)
+                    {
+                        int glowSize = (glow + 1) * 2;
+                        int alpha = brightness / (glow + 1);
+                        if (alpha > 255) alpha = 255;
+                        
+                        using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(alpha, brightness, brightness, brightness)))
+                        {
+                            e.Graphics.FillEllipse(glowBrush, x - glowSize/2, y - glowSize/2, glowSize, glowSize);
+                        }
+                    }
+                    
+                    // Draw the core star
+                    int coreSize = rand.Next(1, 3 + layer);
+                    using (SolidBrush starBrush = new SolidBrush(Color.FromArgb(brightness, brightness, brightness)))
+                    {
+                        e.Graphics.FillEllipse(starBrush, x - coreSize/2, y - coreSize/2, coreSize, coreSize);
+                    }
+                }
+            }
+
+            // Add some distant nebula-like clouds
+            using (GraphicsPath nebulaPath = new GraphicsPath())
+            {
+                nebulaPath.AddEllipse(ClientRectangle.Width * 0.1f, ClientRectangle.Height * 0.2f, 
+                                    ClientRectangle.Width * 0.3f, ClientRectangle.Height * 0.4f);
+                nebulaPath.AddEllipse(ClientRectangle.Width * 0.6f, ClientRectangle.Height * 0.1f, 
+                                    ClientRectangle.Width * 0.4f, ClientRectangle.Height * 0.3f);
+                
+                using (PathGradientBrush nebulaBrush = new PathGradientBrush(nebulaPath))
+                {
+                    nebulaBrush.CenterColor = Color.FromArgb(30, 20, 40, 60);
+                    nebulaBrush.SurroundColors = new Color[] { Color.FromArgb(10, 10, 20, 30) };
+                    nebulaBrush.CenterPoint = new PointF(ClientRectangle.Width * 0.3f, ClientRectangle.Height * 0.4f);
+                    e.Graphics.FillPath(nebulaBrush, nebulaPath);
+                }
             }
 
             // Draw the ball behind the strip for half the path
