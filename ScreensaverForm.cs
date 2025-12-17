@@ -159,6 +159,24 @@ namespace SCREEN_SAVER
                 e.Graphics.FillRectangle(bgBrush, ClientRectangle);
             }
 
+            // Draw the ball behind the strip for half the path
+            if (Math.Sin(u / 2) <= 0)
+            {
+                PointF ballPos = GetPoint(u, 0);
+                float ballRadius = 50;
+                using (GraphicsPath ballPath = new GraphicsPath())
+                {
+                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
+                    {
+                        ballBrush.CenterColor = Color.Yellow;
+                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
+                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                        e.Graphics.FillPath(ballBrush, ballPath);
+                    }
+                }
+            }
+
             // Draw the Möbius strip
             float du = 0.1f;
             for (float uu = 0; uu < 2 * PI; uu += du)
@@ -170,7 +188,7 @@ namespace SCREEN_SAVER
 
                 PointF[] points = { p1, p2, p3, p4 };
 
-                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.DarkGray, Color.LightGray))
+                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.FromArgb(128, Color.DarkGray), Color.FromArgb(128, Color.LightGray)))
                 {
                     e.Graphics.FillPolygon(brush, points);
                 }
@@ -181,18 +199,21 @@ namespace SCREEN_SAVER
                 }
             }
 
-            // Draw the ball
-            PointF ballPos = GetPoint(u, 0);
-            float ballRadius = 50;
-            using (GraphicsPath ballPath = new GraphicsPath())
+            // Draw the ball on top of the strip for half the path
+            if (Math.Sin(u / 2) > 0)
             {
-                ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
-                using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
+                PointF ballPos = GetPoint(u, 0);
+                float ballRadius = 50;
+                using (GraphicsPath ballPath = new GraphicsPath())
                 {
-                    ballBrush.CenterColor = Color.Yellow;
-                    ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
-                    ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
-                    e.Graphics.FillPath(ballBrush, ballPath);
+                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
+                    {
+                        ballBrush.CenterColor = Color.Yellow;
+                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
+                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                        e.Graphics.FillPath(ballBrush, ballPath);
+                    }
                 }
             }
         }
