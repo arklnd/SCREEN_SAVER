@@ -14,17 +14,22 @@ namespace SCREEN_SAVER
         private bool isPreview = false;
 
         // Animation variables
-        private float currentRadius = 1f;
-        private float maxRadius;
-        private float expansionSpeed = 1.5f;
-        private Color circleColor = Color.FromArgb(0, 150, 255); // Blue color
+        private float u = 0f; // parameter for Möbius strip
+        private float speed = 0.02f;
+        private float angle = 0f; // rotation angle
+        private float floatTime = 0f; // for floating motion
+        private float floatSpeed = 0.01f;
+        private float floatSpeed2 = 0.005f;
+        private float floatAmp = 30f;
+        private const float PI = (float)Math.PI;
+        private float scale;
         private PointF centerPoint;
         private Thread animationThread;
         private bool isRunning = true;
 
         // For smooth animation
-        private BufferedGraphicsContext context;
-        private BufferedGraphics bufferedGraphics;
+        // private BufferedGraphicsContext context;
+        // private BufferedGraphics bufferedGraphics;
 
         // Import user32.dll for preview window
         [DllImport("user32.dll")]
@@ -77,7 +82,7 @@ namespace SCREEN_SAVER
             this.DoubleBuffered = true;
 
             // Set up buffered graphics
-            context = BufferedGraphicsManager.Current;
+            // context = BufferedGraphicsManager.Current;
 
             // Handle mouse and keyboard events to close screensaver
             this.MouseMove += ScreensaverForm_MouseMove;
@@ -87,11 +92,9 @@ namespace SCREEN_SAVER
 
         private void ScreensaverForm_Load(object sender, EventArgs e)
         {
-            // Calculate center and maximum radius
+            // Calculate scale and center
+            scale = Math.Min(this.ClientSize.Width, this.ClientSize.Height) / 4f;
             centerPoint = new PointF(this.ClientSize.Width / 2f, this.ClientSize.Height / 2f);
-            maxRadius = (float)Math.Sqrt(
-                Math.Pow(this.ClientSize.Width / 2f, 2) +
-                Math.Pow(this.ClientSize.Height / 2f, 2));
 
             // Start animation thread
             animationThread = new Thread(AnimationLoop);
@@ -99,18 +102,42 @@ namespace SCREEN_SAVER
             animationThread.Start();
         }
 
+        private PointF GetPoint(float u, float v)
+        {
+            float x = (1 + v / 2 * (float)Math.Cos(u / 2)) * (float)Math.Cos(u);
+            float y = (1 + v / 2 * (float)Math.Cos(u / 2)) * (float)Math.Sin(u);
+            float z = v / 2 * (float)Math.Sin(u / 2);
+
+            // Rotate around y-axis
+            float cosA = (float)Math.Cos(angle);
+            float sinA = (float)Math.Sin(angle);
+            float newX = x * cosA - z * sinA;
+            float newZ = x * sinA + z * cosA;
+            float newY = y;
+
+            // Simple 3D to 2D projection
+            float xp = newX * scale + centerPoint.X;
+            float yp = newY * scale + centerPoint.Y - newZ * scale * 0.3f + floatAmp * (float)Math.Sin(floatTime);
+
+            return new PointF(xp, yp);
+        }
+
         private void AnimationLoop()
         {
             while (isRunning)
             {
-                // Update radius
-                currentRadius += expansionSpeed;
+                // Update u
+                u += speed;
 
-                // Reset when circle is fully expanded
-                if (currentRadius > maxRadius)
+                // Reset when full loop
+                if (u > 2 * PI)
                 {
-                    currentRadius = 1f;
+                    u -= 2 * PI;
                 }
+
+                // Update rotation and floating
+                angle += floatSpeed;
+                floatTime += floatSpeed2;
 
                 // Redraw on UI thread
                 this.Invoke(new Action(Invalidate));
@@ -124,45 +151,50 @@ namespace SCREEN_SAVER
         {
             base.OnPaint(e);
 
-            // Create a gradient brush for smooth circle
-            using (GraphicsPath path = new GraphicsPath())
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            // Draw space background
+            using (LinearGradientBrush bgBrush = new LinearGradientBrush(ClientRectangle, Color.Black, Color.DarkBlue, LinearGradientMode.Vertical))
             {
-                path.AddEllipse(
-                    centerPoint.X - currentRadius,
-                    centerPoint.Y - currentRadius,
-                    currentRadius * 2,
-                    currentRadius * 2);
+                e.Graphics.FillRectangle(bgBrush, ClientRectangle);
+            }
 
-                using (PathGradientBrush brush = new PathGradientBrush(path))
+            // Draw the Möbius strip
+            float du = 0.1f;
+            for (float uu = 0; uu < 2 * PI; uu += du)
+            {
+                PointF p1 = GetPoint(uu, -1);
+                PointF p2 = GetPoint(uu, 1);
+                PointF p3 = GetPoint(uu + du, 1);
+                PointF p4 = GetPoint(uu + du, -1);
+
+                PointF[] points = { p1, p2, p3, p4 };
+
+                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.DarkGray, Color.LightGray))
                 {
-                    brush.CenterColor = Color.FromArgb(200, circleColor);
-                    brush.SurroundColors = new Color[] { Color.FromArgb(0, circleColor) };
-                    brush.CenterPoint = centerPoint;
+                    e.Graphics.FillPolygon(brush, points);
+                }
 
-                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    e.Graphics.FillEllipse(brush,
-                        centerPoint.X - currentRadius,
-                        centerPoint.Y - currentRadius,
-                        currentRadius * 2,
-                        currentRadius * 2);
+                using (Pen pen = new Pen(Color.White, 1))
+                {
+                    e.Graphics.DrawPolygon(pen, points);
                 }
             }
 
-            // Draw center point
-            using (SolidBrush centerBrush = new SolidBrush(Color.White))
+            // Draw the ball
+            PointF ballPos = GetPoint(u, 0);
+            using (SolidBrush ballBrush = new SolidBrush(Color.Yellow))
             {
-                e.Graphics.FillEllipse(centerBrush,
-                    centerPoint.X - 2,
-                    centerPoint.Y - 2,
-                    4, 4);
+                float ballRadius = 80;
+                e.Graphics.FillEllipse(ballBrush, ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
             }
         }
 
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            // Don't call base to prevent flickering
-            e.Graphics.Clear(Color.Black);
-        }
+        // protected override void OnPaintBackground(PaintEventArgs e)
+        // {
+        //     // Don't call base to prevent flickering
+        //     e.Graphics.Clear(Color.Black);
+        // }
 
         // Event handlers to close screensaver
         private Point lastMousePos;
@@ -218,7 +250,7 @@ namespace SCREEN_SAVER
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 600);
             this.Name = "ScreensaverForm";
-            this.Text = "Expanding Circle Screensaver";
+            this.Text = "Möbius Strip Screensaver";
             this.Load += new System.EventHandler(this.ScreensaverForm_Load);
             this.ResumeLayout(false);
         }
