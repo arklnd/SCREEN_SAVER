@@ -122,6 +122,87 @@ namespace SCREEN_SAVER
             return new PointF(xp, yp);
         }
 
+        private float GetWidth(float uu)
+        {
+            return 1f + 0.5f * (float)Math.Sin(uu + floatTime * 2);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            // Draw space background
+            using (LinearGradientBrush bgBrush = new LinearGradientBrush(ClientRectangle, Color.Black, Color.DarkBlue, LinearGradientMode.Vertical))
+            {
+                e.Graphics.FillRectangle(bgBrush, ClientRectangle);
+            }
+
+            // Draw the ball behind the strip for half the path
+            if (Math.Sin(u / 2) <= 0)
+            {
+                PointF ballPos = GetPoint(u, 0);
+                float ballRadius = 50;
+                using (GraphicsPath ballPath = new GraphicsPath())
+                {
+                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
+                    {
+                        ballBrush.CenterColor = Color.Yellow;
+                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
+                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                        e.Graphics.FillPath(ballBrush, ballPath);
+                    }
+                }
+            }
+
+            // Draw the Möbius strip
+            float du = 0.1f;
+            for (float uu = 0; uu < 2 * PI; uu += du)
+            {
+                float width = GetWidth(uu);
+                PointF p1 = GetPoint(uu, -width);
+                PointF p2 = GetPoint(uu, width);
+                PointF p3 = GetPoint(uu + du, width);
+                PointF p4 = GetPoint(uu + du, -width);
+
+                PointF[] points = { p1, p2, p3, p4 };
+
+                float hue = (uu / (2 * PI)) * 360;
+                Color baseColor = ColorFromHsv(hue, 1.0f, 0.8f);
+                Color lightColor = ControlPaint.Light(baseColor, 0.3f);
+
+                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.FromArgb(128, baseColor), Color.FromArgb(128, lightColor)))
+                {
+                    e.Graphics.FillPolygon(brush, points);
+                }
+
+                using (Pen pen = new Pen(Color.White, 1))
+                {
+                    e.Graphics.DrawPolygon(pen, points);
+                }
+            }
+
+            // Draw the ball on top of the strip for half the path
+            if (Math.Sin(u / 2) > 0)
+            {
+                PointF ballPos = GetPoint(u, 0);
+                float ballRadius = 50;
+                using (GraphicsPath ballPath = new GraphicsPath())
+                {
+                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
+                    {
+                        ballBrush.CenterColor = Color.Yellow;
+                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
+                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                        e.Graphics.FillPath(ballBrush, ballPath);
+                    }
+                }
+            }
+        }
+
         private Color ColorFromHsv(float hue, float saturation, float value)
         {
             int hi = (int)(hue / 60) % 6;
@@ -165,81 +246,6 @@ namespace SCREEN_SAVER
 
                 // Control animation speed (60 FPS)
                 Thread.Sleep(16);
-            }
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-            // Draw space background
-            using (LinearGradientBrush bgBrush = new LinearGradientBrush(ClientRectangle, Color.Black, Color.DarkBlue, LinearGradientMode.Vertical))
-            {
-                e.Graphics.FillRectangle(bgBrush, ClientRectangle);
-            }
-
-            // Draw the ball behind the strip for half the path
-            if (Math.Sin(u / 2) <= 0)
-            {
-                PointF ballPos = GetPoint(u, 0);
-                float ballRadius = 50;
-                using (GraphicsPath ballPath = new GraphicsPath())
-                {
-                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
-                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
-                    {
-                        ballBrush.CenterColor = Color.Yellow;
-                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
-                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
-                        e.Graphics.FillPath(ballBrush, ballPath);
-                    }
-                }
-            }
-
-            // Draw the Möbius strip
-            float du = 0.1f;
-            for (float uu = 0; uu < 2 * PI; uu += du)
-            {
-                PointF p1 = GetPoint(uu, -1);
-                PointF p2 = GetPoint(uu, 1);
-                PointF p3 = GetPoint(uu + du, 1);
-                PointF p4 = GetPoint(uu + du, -1);
-
-                PointF[] points = { p1, p2, p3, p4 };
-
-                float hue = (uu / (2 * PI)) * 360;
-                Color baseColor = ColorFromHsv(hue, 1.0f, 0.8f);
-                Color lightColor = ControlPaint.Light(baseColor, 0.3f);
-
-                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.FromArgb(128, baseColor), Color.FromArgb(128, lightColor)))
-                {
-                    e.Graphics.FillPolygon(brush, points);
-                }
-
-                using (Pen pen = new Pen(Color.White, 1))
-                {
-                    e.Graphics.DrawPolygon(pen, points);
-                }
-            }
-
-            // Draw the ball on top of the strip for half the path
-            if (Math.Sin(u / 2) > 0)
-            {
-                PointF ballPos = GetPoint(u, 0);
-                float ballRadius = 50;
-                using (GraphicsPath ballPath = new GraphicsPath())
-                {
-                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
-                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
-                    {
-                        ballBrush.CenterColor = Color.Yellow;
-                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
-                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
-                        e.Graphics.FillPath(ballBrush, ballPath);
-                    }
-                }
             }
         }
 
