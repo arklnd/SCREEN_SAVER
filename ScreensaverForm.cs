@@ -15,18 +15,18 @@ namespace SCREEN_SAVER
 
         // Animation variables
         private float u = 0f; // parameter for Möbius strip
-        private float speed = 0.02f;
+        private float speed = 0.05f; // Increased speed for faster movement
         private float angle = 0f; // rotation angle
         private float floatTime = 0f; // for floating motion
-        private float floatSpeed = 0.01f;
-        private float floatSpeed2 = 0.005f;
-        private float floatAmp = 30f;
+        private float floatSpeed = 0.02f; // Faster rotation
+        private float floatSpeed2 = 0.01f;
+        private float floatAmp = 50f; // Increased amplitude
         private const float PI = (float)Math.PI;
         private float scale;
         private PointF centerPoint;
         private Thread animationThread;
         private bool isRunning = true;
-        private float du = 0.1f;
+        private float du = 0.08f; // Smaller segments for smoother fluid effect
 
         // For smooth animation
         // private BufferedGraphicsContext context;
@@ -94,8 +94,8 @@ namespace SCREEN_SAVER
 
         private void ScreensaverForm_Load(object sender, EventArgs e)
         {
-            // Calculate scale and center
-            scale = Math.Min(this.ClientSize.Width, this.ClientSize.Height) / 4f;
+            // Calculate scale and center - increased to span more screen
+            scale = Math.Min(this.ClientSize.Width, this.ClientSize.Height) / 2f;
             centerPoint = new PointF(this.ClientSize.Width / 2f, this.ClientSize.Height / 2f);
 
             // Start animation thread
@@ -106,27 +106,41 @@ namespace SCREEN_SAVER
 
         private PointF GetPoint(float u, float v)
         {
-            float x = (1 + v / 2 * (float)Math.Cos(u / 2)) * (float)Math.Cos(u);
-            float y = (1 + v / 2 * (float)Math.Cos(u / 2)) * (float)Math.Sin(u);
-            float z = v / 2 * (float)Math.Sin(u / 2);
+            // Add fluid wave distortions
+            float wave1 = (float)Math.Sin(u * 3 + floatTime * 2) * 0.2f;
+            float wave2 = (float)Math.Cos(u * 2 + floatTime * 1.5f) * 0.15f;
+            float fluidOffset = wave1 + wave2;
 
-            // Rotate around y-axis
-            float cosA = (float)Math.Cos(angle);
-            float sinA = (float)Math.Sin(angle);
+            float x = (1 + v / 2 * (float)Math.Cos(u / 2)) * (float)Math.Cos(u + fluidOffset);
+            float y = (1 + v / 2 * (float)Math.Cos(u / 2)) * (float)Math.Sin(u + fluidOffset);
+            float z = v / 2 * (float)Math.Sin(u / 2) + fluidOffset * 0.5f;
+
+            // Rotate around y-axis with additional fluid rotation
+            float fluidAngle = angle + (float)Math.Sin(floatTime) * 0.5f;
+            float cosA = (float)Math.Cos(fluidAngle);
+            float sinA = (float)Math.Sin(fluidAngle);
             float newX = x * cosA - z * sinA;
             float newZ = x * sinA + z * cosA;
             float newY = y;
 
-            // Simple 3D to 2D projection
-            float xp = newX * scale + centerPoint.X;
-            float yp = newY * scale + centerPoint.Y - newZ * scale * 0.3f + floatAmp * (float)Math.Sin(floatTime);
+            // Add random spanning across screen
+            float randomOffsetX = (float)Math.Sin(u * 5 + floatTime * 3) * scale * 0.3f;
+            float randomOffsetY = (float)Math.Cos(u * 4 + floatTime * 2.5f) * scale * 0.2f;
+
+            // Simple 3D to 2D projection with enhanced perspective
+            float xp = newX * scale + centerPoint.X + randomOffsetX;
+            float yp = newY * scale + centerPoint.Y - newZ * scale * 0.5f + floatAmp * (float)Math.Sin(floatTime) + randomOffsetY;
 
             return new PointF(xp, yp);
         }
 
         private float GetWidth(float uu)
         {
-            return 1f + 0.15625f * (float)Math.Sin(uu + floatTime * 2);
+            // More complex fluid width variation
+            float baseWidth = 1f + 0.3f * (float)Math.Sin(uu + floatTime * 3);
+            float fluidWave = 0.2f * (float)Math.Sin(uu * 2 + floatTime * 4);
+            float randomPulse = 0.1f * (float)Math.Cos(uu * 7 + floatTime * 5);
+            return baseWidth + fluidWave + randomPulse;
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -147,18 +161,18 @@ namespace SCREEN_SAVER
             // Three layers of stars for parallax effect
             for (int layer = 0; layer < 3; layer++)
             {
-                float parallaxSpeed = 0.3f + layer * 0.4f; // Farther layers move slower
+                float parallaxSpeed = 1.0f + layer * 0.8f; // Much faster movement for perspective
                 float baseBrightness = 100 + layer * 30; // Farther layers are dimmer
                 
-                for (int i = 0; i < (layer == 0 ? 100 : layer == 1 ? 60 : 40); i++)
+                for (int i = 0; i < (layer == 0 ? 150 : layer == 1 ? 100 : 70); i++) // More stars
                 {
                     // Generate base position
                     int baseX = rand.Next(ClientRectangle.Width);
                     int baseY = rand.Next(ClientRectangle.Height);
                     
-                    // Apply parallax movement based on animation time
-                    float offsetX = (float)Math.Sin(floatTime * parallaxSpeed + i * 0.05f) * 50 * (3 - layer);
-                    float offsetY = (float)Math.Cos(floatTime * parallaxSpeed * 0.7f + i * 0.03f) * 30 * (3 - layer);
+                    // Apply faster parallax movement for perspective simulation
+                    float offsetX = (float)Math.Sin(floatTime * parallaxSpeed + i * 0.1f) * 100 * (4 - layer);
+                    float offsetY = (float)Math.Cos(floatTime * parallaxSpeed * 0.8f + i * 0.07f) * 80 * (4 - layer);
                     
                     int x = (int)(baseX + offsetX) % ClientRectangle.Width;
                     int y = (int)(baseY + offsetY) % ClientRectangle.Height;
@@ -311,8 +325,8 @@ namespace SCREEN_SAVER
                 angle += floatSpeed;
                 floatTime += floatSpeed2;
 
-                // Update segment size for varying number of plates
-                du = 0.05f + 0.04f * (float)Math.Sin(floatTime * 0.3f);
+                // Update segment size for fluid effect
+                du = 0.04f + 0.03f * (float)Math.Sin(floatTime * 0.5f) + 0.02f * (float)Math.Cos(floatTime * 0.3f);
 
                 // Redraw on UI thread
                 this.Invoke(new Action(Invalidate));
