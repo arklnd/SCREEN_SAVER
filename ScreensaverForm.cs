@@ -262,7 +262,7 @@ namespace SCREEN_SAVER
                     e.Graphics.FillPolygon(brush, points);
                 }
 
-                using (Pen pen = new Pen(Color.White, 1))
+                using (Pen pen = new Pen(Color.FromArgb(150, Color.White), 1))
                 {
                     e.Graphics.DrawPolygon(pen, points);
                 }
