@@ -325,8 +325,8 @@ namespace SCREEN_SAVER
                 angle += floatSpeed;
                 floatTime += floatSpeed2;
 
-                // Update segment size for fluid effect
-                du = 0.04f + 0.03f * (float)Math.Sin(floatTime * 0.5f) + 0.02f * (float)Math.Cos(floatTime * 0.3f);
+                // Update segment size for fluid effect, but clamp to prevent too many iterations
+                du = Math.Max(0.08f, 0.04f + 0.03f * (float)Math.Sin(floatTime * 0.5f) + 0.02f * (float)Math.Cos(floatTime * 0.3f));
 
                 // Redraw on UI thread
                 this.Invoke(new Action(Invalidate));
