@@ -17,7 +17,7 @@ namespace SCREEN_SAVER
             if (args.Length > 0)
             {
                 string firstArgument = args[0].ToLower().Trim();
-                string secondArgument = null;
+                string? secondArgument = null;
 
                 // Handle cases where arguments are separated by colon
                 if (firstArgument.Length > 2)
@@ -70,7 +70,7 @@ namespace SCREEN_SAVER
 
         static void ShowPreview(string previewHandle)
         {
-            IntPtr handle = new IntPtr(long.Parse(previewHandle));
+            IntPtr handle = new(long.Parse(previewHandle));
             Application.Run(new ScreensaverForm(handle, true));
         }
 
@@ -81,7 +81,7 @@ namespace SCREEN_SAVER
             {
                 virtualBounds = Rectangle.Union(virtualBounds, screen.Bounds);
             }
-            ScreensaverForm screensaver = new ScreensaverForm(virtualBounds);
+            ScreensaverForm screensaver = new(virtualBounds);
             screensaver.Show();
             Application.Run();
         }

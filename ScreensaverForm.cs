@@ -10,17 +10,17 @@ namespace SCREEN_SAVER
     public partial class ScreensaverForm : Form
     {
         // For preview window handle
-        private IntPtr previewHandle = IntPtr.Zero;
-        private bool isPreview = false;
+        private readonly IntPtr previewHandle = IntPtr.Zero;
+        private readonly bool isPreview = false;
 
         // Animation variables
         private float u = 0f; // parameter for Möbius strip
-        private float speed = 0.05f; // Increased speed for faster movement
+        private readonly float speed = 0.05f; // Increased speed for faster movement
         private float angle = 0f; // rotation angle
         private float floatTime = 0f; // for floating motion
-        private float floatSpeed = 0.02f; // Faster rotation
-        private float floatSpeed2 = 0.01f;
-        private float floatAmp = 50f; // Increased amplitude
+        private readonly float floatSpeed = 0.02f; // Faster rotation
+        private readonly float floatSpeed2 = 0.01f;
+        private readonly float floatAmp = 50f; // Increased amplitude
         private const float PI = (float)Math.PI;
         private float scale;
         private PointF centerPoint;
@@ -48,8 +48,8 @@ namespace SCREEN_SAVER
         public ScreensaverForm(Rectangle bounds)
         {
             InitializeForm();
-            this.Bounds = bounds;
-            this.isPreview = false;
+            Bounds = bounds;
+            isPreview = false;
         }
 
         public ScreensaverForm(IntPtr previewHandle, bool isPreview)
@@ -59,17 +59,17 @@ namespace SCREEN_SAVER
             this.isPreview = isPreview;
 
             // Set parent for preview window
-            SetParent(this.Handle, previewHandle);
+            SetParent(Handle, previewHandle);
 
             // Make it a child window
-            SetWindowLong(this.Handle, -16,
-                GetWindowLong(this.Handle, -16) | 0x40000000);
+            SetWindowLong(Handle, -16,
+                GetWindowLong(Handle, -16) | 0x40000000);
 
             // Get preview window size
             Rectangle parentRect;
             GetClientRect(previewHandle, out parentRect);
-            this.Size = parentRect.Size;
-            this.Location = new Point(0, 0);
+            Size = parentRect.Size;
+            Location = new Point(0, 0);
         }
 
         private void InitializeForm()
@@ -77,30 +77,32 @@ namespace SCREEN_SAVER
             InitializeComponent();
 
             // Set form properties
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.BackColor = Color.Black;
-            this.TopMost = true;
-            this.DoubleBuffered = true;
-            this.StartPosition = FormStartPosition.Manual;
+            FormBorderStyle = FormBorderStyle.None;
+            BackColor = Color.Black;
+            TopMost = true;
+            DoubleBuffered = true;
+            StartPosition = FormStartPosition.Manual;
 
             // Set up buffered graphics
             // context = BufferedGraphicsManager.Current;
 
             // Handle mouse and keyboard events to close screensaver
-            this.MouseMove += ScreensaverForm_MouseMove;
-            this.MouseClick += ScreensaverForm_MouseClick;
-            this.KeyPress += ScreensaverForm_KeyPress;
+            MouseMove += ScreensaverForm_MouseMove;
+            MouseClick += ScreensaverForm_MouseClick;
+            KeyPress += ScreensaverForm_KeyPress;
         }
 
         private void ScreensaverForm_Load(object sender, EventArgs e)
         {
             // Calculate scale and center - increased to span more screen
-            scale = Math.Min(this.ClientSize.Width, this.ClientSize.Height) / 2f;
-            centerPoint = new PointF(this.ClientSize.Width / 2f, this.ClientSize.Height / 2f);
+            scale = Math.Min(ClientSize.Width, ClientSize.Height) / 2f;
+            centerPoint = new PointF(ClientSize.Width / 2f, ClientSize.Height / 2f);
 
             // Start animation thread
-            animationThread = new Thread(AnimationLoop);
-            animationThread.IsBackground = true;
+            animationThread = new Thread(AnimationLoop)
+            {
+                IsBackground = true
+            };
             animationThread.Start();
         }
 
@@ -150,13 +152,13 @@ namespace SCREEN_SAVER
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
             // Draw space background with stars
-            using (SolidBrush bgBrush = new SolidBrush(Color.Black))
+            using (SolidBrush bgBrush = new(Color.Black))
             {
                 e.Graphics.FillRectangle(bgBrush, ClientRectangle);
             }
 
             // Draw stars with parallax movement and glow effect
-            Random rand = new Random(42); // Fixed seed for consistent star positions
+            Random rand = new(42); // Fixed seed for consistent star positions
             
             // Three layers of stars for parallax effect
             for (int layer = 0; layer < 3; layer++)
@@ -191,37 +193,31 @@ namespace SCREEN_SAVER
                         int glowSize = (glow + 1) * 2;
                         int alpha = brightness / (glow + 1);
                         if (alpha > 255) alpha = 255;
-                        
-                        using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(alpha, brightness, brightness, brightness)))
-                        {
-                            e.Graphics.FillEllipse(glowBrush, x - glowSize/2, y - glowSize/2, glowSize, glowSize);
-                        }
+
+                        using SolidBrush glowBrush = new(Color.FromArgb(alpha, brightness, brightness, brightness));
+                        e.Graphics.FillEllipse(glowBrush, x - glowSize / 2, y - glowSize / 2, glowSize, glowSize);
                     }
                     
                     // Draw the core star
                     int coreSize = rand.Next(1, 3 + layer);
-                    using (SolidBrush starBrush = new SolidBrush(Color.FromArgb(brightness, brightness, brightness)))
-                    {
-                        e.Graphics.FillEllipse(starBrush, x - coreSize/2, y - coreSize/2, coreSize, coreSize);
-                    }
+                    using SolidBrush starBrush = new(Color.FromArgb(brightness, brightness, brightness));
+                    e.Graphics.FillEllipse(starBrush, x - coreSize / 2, y - coreSize / 2, coreSize, coreSize);
                 }
             }
 
             // Add some distant nebula-like clouds
-            using (GraphicsPath nebulaPath = new GraphicsPath())
+            using (GraphicsPath nebulaPath = new())
             {
                 nebulaPath.AddEllipse(ClientRectangle.Width * 0.1f, ClientRectangle.Height * 0.2f, 
                                     ClientRectangle.Width * 0.3f, ClientRectangle.Height * 0.4f);
                 nebulaPath.AddEllipse(ClientRectangle.Width * 0.6f, ClientRectangle.Height * 0.1f, 
                                     ClientRectangle.Width * 0.4f, ClientRectangle.Height * 0.3f);
-                
-                using (PathGradientBrush nebulaBrush = new PathGradientBrush(nebulaPath))
-                {
-                    nebulaBrush.CenterColor = Color.FromArgb(30, 20, 40, 60);
-                    nebulaBrush.SurroundColors = new Color[] { Color.FromArgb(10, 10, 20, 30) };
-                    nebulaBrush.CenterPoint = new PointF(ClientRectangle.Width * 0.3f, ClientRectangle.Height * 0.4f);
-                    e.Graphics.FillPath(nebulaBrush, nebulaPath);
-                }
+
+                using PathGradientBrush nebulaBrush = new(nebulaPath);
+                nebulaBrush.CenterColor = Color.FromArgb(30, 20, 40, 60);
+                nebulaBrush.SurroundColors = [Color.FromArgb(10, 10, 20, 30)];
+                nebulaBrush.CenterPoint = new PointF(ClientRectangle.Width * 0.3f, ClientRectangle.Height * 0.4f);
+                e.Graphics.FillPath(nebulaBrush, nebulaPath);
             }
 
             // Draw the ball behind the strip for half the path
@@ -229,17 +225,13 @@ namespace SCREEN_SAVER
             {
                 PointF ballPos = GetPoint(u, 0);
                 float ballRadius = 50;
-                using (GraphicsPath ballPath = new GraphicsPath())
-                {
-                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
-                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
-                    {
-                        ballBrush.CenterColor = Color.Yellow;
-                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
-                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
-                        e.Graphics.FillPath(ballBrush, ballPath);
-                    }
-                }
+                using GraphicsPath ballPath = new();
+                ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                using PathGradientBrush ballBrush = new(ballPath);
+                ballBrush.CenterColor = Color.Yellow;
+                ballBrush.SurroundColors = [Color.FromArgb(100, 100, 0)];
+                ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                e.Graphics.FillPath(ballBrush, ballPath);
             }
 
             // Draw the Möbius strip
@@ -251,21 +243,19 @@ namespace SCREEN_SAVER
                 PointF p3 = GetPoint(uu + du, width);
                 PointF p4 = GetPoint(uu + du, -width);
 
-                PointF[] points = { p1, p2, p3, p4 };
+                PointF[] points = [p1, p2, p3, p4];
 
                 float hue = (uu / (2 * PI)) * 360;
                 Color baseColor = ColorFromHsv(hue, 1.0f, 0.8f);
                 Color lightColor = ControlPaint.Light(baseColor, 0.3f);
 
-                using (LinearGradientBrush brush = new LinearGradientBrush(p1, p3, Color.FromArgb(128, baseColor), Color.FromArgb(128, lightColor)))
+                using (LinearGradientBrush brush = new(p1, p3, Color.FromArgb(128, baseColor), Color.FromArgb(128, lightColor)))
                 {
                     e.Graphics.FillPolygon(brush, points);
                 }
 
-                using (Pen pen = new Pen(Color.FromArgb(150, Color.White), 1))
-                {
-                    e.Graphics.DrawPolygon(pen, points);
-                }
+                using Pen pen = new(Color.FromArgb(150, Color.White), 1);
+                e.Graphics.DrawPolygon(pen, points);
             }
 
             // Draw the ball on top of the strip for half the path
@@ -273,17 +263,13 @@ namespace SCREEN_SAVER
             {
                 PointF ballPos = GetPoint(u, 0);
                 float ballRadius = 50;
-                using (GraphicsPath ballPath = new GraphicsPath())
-                {
-                    ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
-                    using (PathGradientBrush ballBrush = new PathGradientBrush(ballPath))
-                    {
-                        ballBrush.CenterColor = Color.Yellow;
-                        ballBrush.SurroundColors = new Color[] { Color.FromArgb(100, 100, 0) };
-                        ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
-                        e.Graphics.FillPath(ballBrush, ballPath);
-                    }
-                }
+                using GraphicsPath ballPath = new();
+                ballPath.AddEllipse(ballPos.X - ballRadius, ballPos.Y - ballRadius, ballRadius * 2, ballRadius * 2);
+                using PathGradientBrush ballBrush = new(ballPath);
+                ballBrush.CenterColor = Color.Yellow;
+                ballBrush.SurroundColors = [Color.FromArgb(100, 100, 0)];
+                ballBrush.CenterPoint = new PointF(ballPos.X - ballRadius * 0.3f, ballPos.Y - ballRadius * 0.3f);
+                e.Graphics.FillPath(ballBrush, ballPath);
             }
         }
 
@@ -329,7 +315,7 @@ namespace SCREEN_SAVER
                 du = Math.Max(0.08f, 0.04f + 0.03f * (float)Math.Sin(floatTime * 0.5f) + 0.02f * (float)Math.Cos(floatTime * 0.3f));
 
                 // Redraw on UI thread
-                this.Invoke(new Action(Invalidate));
+                Invoke(new Action(Invalidate));
 
                 // Control animation speed (60 FPS)
                 Thread.Sleep(16);
@@ -380,7 +366,7 @@ namespace SCREEN_SAVER
         }
 
         #region Windows Form Designer generated code
-        private System.ComponentModel.IContainer components = null;
+        private readonly System.ComponentModel.IContainer? components = null;
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -391,14 +377,14 @@ namespace SCREEN_SAVER
         }
         private void InitializeComponent()
         {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 600);
-            this.Name = "ScreensaverForm";
-            this.Text = "Möbius Strip Screensaver";
-            this.Load += new System.EventHandler(this.ScreensaverForm_Load);
-            this.ResumeLayout(false);
+            SuspendLayout();
+            AutoScaleDimensions = new SizeF(6F, 13F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new Size(800, 600);
+            Name = "ScreensaverForm";
+            Text = "Möbius Strip Screensaver";
+            Load += new EventHandler(ScreensaverForm_Load);
+            ResumeLayout(false);
         }
         #endregion
     }
