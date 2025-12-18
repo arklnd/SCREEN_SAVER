@@ -76,11 +76,13 @@ namespace SCREEN_SAVER
 
         static void ShowScreensaver()
         {
+            Rectangle virtualBounds = Rectangle.Empty;
             foreach (Screen screen in Screen.AllScreens)
             {
-                ScreensaverForm screensaver = new ScreensaverForm(screen.Bounds);
-                screensaver.Show();
+                virtualBounds = Rectangle.Union(virtualBounds, screen.Bounds);
             }
+            ScreensaverForm screensaver = new ScreensaverForm(virtualBounds);
+            screensaver.Show();
             Application.Run();
         }
     }

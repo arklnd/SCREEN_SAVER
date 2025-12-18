@@ -81,6 +81,7 @@ namespace SCREEN_SAVER
             this.BackColor = Color.Black;
             this.TopMost = true;
             this.DoubleBuffered = true;
+            this.StartPosition = FormStartPosition.Manual;
 
             // Set up buffered graphics
             // context = BufferedGraphicsManager.Current;
