@@ -125,8 +125,8 @@ namespace SCREEN_SAVER
             float newZ = x * sinA + z * cosA;
             float newY = y;
 
-            // Add random spanning across screen
-            float randomOffsetX = (float)Math.Sin(u * 5 + floatTime * 3) * scale * 0.3f;
+            // Add random spanning across screen with enhanced horizontal spread
+            float randomOffsetX = (float)Math.Sin(u * 3 + floatTime * 2) * scale * 0.6f + (float)Math.Cos(u * 7 + floatTime * 3.5f) * scale * 0.4f;
             float randomOffsetY = (float)Math.Cos(u * 4 + floatTime * 2.5f) * scale * 0.2f;
 
             // Simple 3D to 2D projection with enhanced perspective
