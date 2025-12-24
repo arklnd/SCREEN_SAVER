@@ -26,7 +26,7 @@ namespace SCREEN_SAVER
         private PointF centerPoint;
         private Thread animationThread;
         private bool isRunning = true;
-        private float du = 0.08f; // Smaller segments for smoother fluid effect
+        private float du = 0.16f; // Larger segments for better performance
 
         // For smooth animation
         // private BufferedGraphicsContext context;
@@ -166,7 +166,7 @@ namespace SCREEN_SAVER
                 float parallaxSpeed = 1.0f + layer * 0.8f; // Much faster movement for perspective
                 float baseBrightness = 100 + layer * 30; // Farther layers are dimmer
                 
-                for (int i = 0; i < (layer == 0 ? 150 : layer == 1 ? 100 : 70); i++) // More stars
+                for (int i = 0; i < (layer == 0 ? 50 : layer == 1 ? 30 : 20); i++) // Reduced star count for better performance
                 {
                     // Generate base position
                     int baseX = rand.Next(ClientRectangle.Width);
@@ -187,8 +187,8 @@ namespace SCREEN_SAVER
                     float twinkle = (float)Math.Sin(floatTime * 2 + i * 0.1f + layer) * 0.5f + 0.5f;
                     int brightness = (int)(baseBrightness + twinkle * (255 - baseBrightness));
                     
-                    // Draw glow effect (multiple concentric circles with decreasing opacity)
-                    for (int glow = 3; glow >= 0; glow--)
+                    // Draw glow effect (reduced layers for performance)
+                    for (int glow = 2; glow >= 0; glow--)
                     {
                         int glowSize = (glow + 1) * 2;
                         int alpha = brightness / (glow + 1);
@@ -310,9 +310,6 @@ namespace SCREEN_SAVER
                 // Update rotation and floating
                 angle += floatSpeed;
                 floatTime += floatSpeed2;
-
-                // Update segment size for fluid effect, but clamp to prevent too many iterations
-                du = Math.Max(0.08f, 0.04f + 0.03f * (float)Math.Sin(floatTime * 0.5f) + 0.02f * (float)Math.Cos(floatTime * 0.3f));
 
                 // Redraw on UI thread
                 Invoke(new Action(Invalidate));
