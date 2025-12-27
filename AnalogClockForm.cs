@@ -387,19 +387,13 @@ namespace SCREEN_SAVER
         {
             DateTime now = DateTime.Now;
 
-            // Hour hand shadow
-            double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180;
-            DrawHand(g, hourAngle, clockRadius * 0.5f, 12, Color.Gray, 2, 2, 2);
-
             // Hour hand
-            DrawHand(g, hourAngle, clockRadius * 0.5f, 10, Color.White, 0, 0, 2);
-
-            // Minute hand shadow
-            double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
-            DrawHand(g, minuteAngle, clockRadius * 0.7f, 6, Color.Gray, 2, 2);
+            double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180;
+            DrawHand(g, hourAngle, clockRadius * 0.5f, 10, Color.White, 0, 0, 2, clockRadius * 0.15f);
 
             // Minute hand
-            DrawHand(g, minuteAngle, clockRadius * 0.7f, 4, Color.White);
+            double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
+            DrawHand(g, minuteAngle, clockRadius * 0.7f, 4, Color.White, 0, 0, 4, clockRadius * 0.15f);
 
             // Draw projectiles instead of second hand
             DrawProjectiles(g);
@@ -506,21 +500,22 @@ namespace SCREEN_SAVER
             }
         }
 
-        private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0, float taperFactor = 4)
+        private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0, float taperFactor = 4, float backLength = 0)
         {
             PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
             PointF end = new PointF(center.X + (float)Math.Sin(angle) * length, center.Y - (float)Math.Cos(angle) * length);
+            PointF start = new PointF(center.X - (float)Math.Sin(angle) * backLength, center.Y + (float)Math.Cos(angle) * backLength);
 
             float halfWidth = width / 2;
             float endHalfWidth = width / taperFactor; // Taper factor for vintage look
 
-            PointF centerLeft = new PointF(center.X + (float)Math.Sin(angle - Math.PI / 2) * halfWidth, center.Y - (float)Math.Cos(angle - Math.PI / 2) * halfWidth);
-            PointF centerRight = new PointF(center.X + (float)Math.Sin(angle + Math.PI / 2) * halfWidth, center.Y - (float)Math.Cos(angle + Math.PI / 2) * halfWidth);
+            PointF startLeft = new PointF(start.X + (float)Math.Sin(angle - Math.PI / 2) * halfWidth, start.Y - (float)Math.Cos(angle - Math.PI / 2) * halfWidth);
+            PointF startRight = new PointF(start.X + (float)Math.Sin(angle + Math.PI / 2) * halfWidth, start.Y - (float)Math.Cos(angle + Math.PI / 2) * halfWidth);
 
             PointF endLeft = new PointF(end.X + (float)Math.Sin(angle - Math.PI / 2) * endHalfWidth, end.Y - (float)Math.Cos(angle - Math.PI / 2) * endHalfWidth);
             PointF endRight = new PointF(end.X + (float)Math.Sin(angle + Math.PI / 2) * endHalfWidth, end.Y - (float)Math.Cos(angle + Math.PI / 2) * endHalfWidth);
 
-            PointF[] points = { centerLeft, centerRight, endRight, endLeft };
+            PointF[] points = { startLeft, startRight, endRight, endLeft };
 
             using SolidBrush brush = new SolidBrush(color);
             g.FillPolygon(brush, points);
