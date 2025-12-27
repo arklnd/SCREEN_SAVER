@@ -183,7 +183,7 @@ namespace SCREEN_SAVER
 
             for (int hour = 1; hour <= 12; hour++)
             {
-                double angle = (hour * 30 - 90) * Math.PI / 180; // 30 degrees per hour, -90 to start at 12
+                double angle = ((hour % 12) * 30) * Math.PI / 180; // 30 degrees per hour, starting at 12
                 float numberRadius = clockRadius - 40;
 
                 PointF numberPoint = new PointF(
@@ -205,15 +205,15 @@ namespace SCREEN_SAVER
             DateTime now = DateTime.Now;
 
             // Hour hand
-            double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180 - Math.PI / 2;
+            double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180;
             DrawHand(g, hourAngle, clockRadius * 0.5f, 6, Color.White);
 
             // Minute hand
-            double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180 - Math.PI / 2;
+            double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
             DrawHand(g, minuteAngle, clockRadius * 0.7f, 4, Color.White);
 
             // Second hand
-            double secondAngle = now.Second * 6 * Math.PI / 180 - Math.PI / 2;
+            double secondAngle = now.Second * 6 * Math.PI / 180;
             DrawHand(g, secondAngle, clockRadius * 0.8f, 2, Color.Red);
         }
 
