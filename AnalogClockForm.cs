@@ -326,117 +326,175 @@ namespace SCREEN_SAVER
 
         private void DrawClockFace(Graphics g)
         {
-            // 1. Fill with a subtle radial gradient for depth
+            DateTime now = DateTime.Now;
+            long ticks = now.Ticks;
+            float rotationSlow = (ticks / 200000f) % 360;
+            float rotationFast = -(ticks / 100000f) % 360;
+
+            // 1. Fill with a deep space gradient
             using (GraphicsPath path = new GraphicsPath())
             {
                 path.AddEllipse(centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
                                clockRadius * 2, clockRadius * 2);
                 using (PathGradientBrush brush = new PathGradientBrush(path))
                 {
-                    brush.CenterColor = Color.FromArgb(50, 60, 80); // Dark blue-ish center
+                    brush.CenterColor = Color.FromArgb(20, 30, 50); 
                     brush.SurroundColors = new Color[] { Color.Black };
                     g.FillPath(brush, path);
                 }
             }
 
-            // 2. Draw crosshair/grid
-            using (Pen gridPen = new Pen(Color.FromArgb(30, 200, 200, 255), 1))
+            // 2. Draw rotating tech rings
+            using (Pen ringPen = new Pen(Color.FromArgb(40, 100, 200, 255), 2))
             {
-                g.DrawLine(gridPen, centerPoint.X - clockRadius, centerPoint.Y, centerPoint.X + clockRadius, centerPoint.Y);
-                g.DrawLine(gridPen, centerPoint.X, centerPoint.Y - clockRadius, centerPoint.X, centerPoint.Y + clockRadius);
-                g.DrawEllipse(gridPen, centerPoint.X - clockRadius * 0.5f, centerPoint.Y - clockRadius * 0.5f, clockRadius, clockRadius);
+                // Outer segmented ring
+                float outerR = clockRadius * 0.95f;
+                for (int i = 0; i < 12; i++)
+                {
+                    float startAngle = i * 30 + rotationSlow;
+                    g.DrawArc(ringPen, centerPoint.X - outerR, centerPoint.Y - outerR, 
+                        outerR * 2, outerR * 2, startAngle, 20);
+                }
+
+                // Inner segmented ring (counter-rotating)
+                float innerR = clockRadius * 0.6f;
+                ringPen.Color = Color.FromArgb(30, 100, 255, 200);
+                ringPen.Width = 1;
+                for (int i = 0; i < 8; i++)
+                {
+                    float startAngle = i * 45 + rotationFast;
+                    g.DrawArc(ringPen, centerPoint.X - innerR, centerPoint.Y - innerR,
+                        innerR * 2, innerR * 2, startAngle, 35);
+                }
             }
 
-            // 3. Draw the main rim
-            using (Pen pen = new Pen(Color.FromArgb(150, 255, 255, 255), 2))
+            // 3. Draw static grid/crosshair
+            using (Pen gridPen = new Pen(Color.FromArgb(20, 255, 255, 255), 1))
+            {
+                gridPen.DashStyle = DashStyle.Dot;
+                g.DrawLine(gridPen, centerPoint.X - clockRadius, centerPoint.Y, centerPoint.X + clockRadius, centerPoint.Y);
+                g.DrawLine(gridPen, centerPoint.X, centerPoint.Y - clockRadius, centerPoint.X, centerPoint.Y + clockRadius);
+                g.DrawEllipse(gridPen, centerPoint.X - clockRadius * 0.3f, centerPoint.Y - clockRadius * 0.3f, clockRadius * 0.6f, clockRadius * 0.6f);
+            }
+
+            // 4. Draw the main rim with glow
+            using (Pen pen = new Pen(Color.FromArgb(100, 0, 200, 255), 3))
             {
                 g.DrawEllipse(pen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
                              clockRadius * 2, clockRadius * 2);
             }
 
-            // 4. Draw reactive arcs for blasts on the rim
-            DateTime now = DateTime.Now;
+            // 5. Draw reactive arcs for blasts on the rim
             foreach (var blast in blasts)
             {
-                // Check if blast is near the rim (within some tolerance)
                 float dx = blast.position.X - centerPoint.X;
                 float dy = blast.position.Y - centerPoint.Y;
                 float dist = (float)Math.Sqrt(dx * dx + dy * dy);
 
-                // If it's close to the radius (e.g. within 20 pixels), it's a rim hit
                 if (Math.Abs(dist - clockRadius) < 20)
                 {
                     double age = (now - blast.startTime).TotalSeconds;
                     if (age < 0.8) 
                     {
                         float angle = (float)(Math.Atan2(dy, dx) * 180 / Math.PI);
-                        float sweep = (float)(45 * (1.0 - age / 0.8)); // Shrink sweep
+                        float sweep = (float)(60 * (1.0 - age / 0.8)); 
                         int alpha = (int)(255 * (1.0 - age / 0.8));
                         if (alpha > 255) alpha = 255;
                         if (alpha < 0) alpha = 0;
                         
-                        using (Pen blastPen = new Pen(Color.FromArgb(alpha, blast.color), 6))
+                        // Energy shield effect
+                        using (Pen blastPen = new Pen(Color.FromArgb(alpha, Color.Cyan), 4))
                         {
                             g.DrawArc(blastPen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
                                      clockRadius * 2, clockRadius * 2, angle - sweep/2, sweep);
+                        }
+                        
+                        // Hexagon fragment effect at impact
+                        using (SolidBrush hexBrush = new SolidBrush(Color.FromArgb(alpha / 2, Color.Cyan)))
+                        {
+                            PointF[] hex = new PointF[6];
+                            for(int k=0; k<6; k++) {
+                                float ha = angle * (float)Math.PI/180 + k * (float)Math.PI/3;
+                                hex[k] = new PointF(
+                                    blast.position.X + 15 * (float)Math.Cos(ha),
+                                    blast.position.Y + 15 * (float)Math.Sin(ha)
+                                );
+                            }
+                            g.FillPolygon(hexBrush, hex);
                         }
                     }
                 }
             }
 
-            // 5. Draw center dot with a "pulse"
-            float pulse = (float)(Math.Sin(now.Millisecond / 1000.0 * 2 * Math.PI) * 2 + 6); // 4 to 8
-            using (SolidBrush brush = new SolidBrush(Color.White))
+            // 6. Draw center "Reactor"
+            float pulse = (float)(Math.Sin(now.Millisecond / 1000.0 * 4 * Math.PI) * 3 + 8); 
+            using (SolidBrush brush = new SolidBrush(Color.FromArgb(200, 0, 255, 255)))
             {
                 g.FillEllipse(brush, centerPoint.X - pulse, centerPoint.Y - pulse, pulse * 2, pulse * 2);
+            }
+            using (Pen reactorPen = new Pen(Color.FromArgb(100, 0, 255, 255), 2))
+            {
+                g.DrawEllipse(reactorPen, centerPoint.X - 15, centerPoint.Y - 15, 30, 30);
             }
         }
 
         private void DrawHourMarkers(Graphics g)
         {
-            using Pen hourPen = new Pen(Color.FromArgb(200, 255, 255, 255), 3);
-            using Pen minutePen = new Pen(Color.FromArgb(100, 200, 200, 200), 1);
-            using SolidBrush hourBrush = new SolidBrush(Color.White);
+            using Pen hourPen = new Pen(Color.FromArgb(200, 0, 255, 255), 2);
+            using SolidBrush hourBrush = new SolidBrush(Color.FromArgb(200, 0, 255, 255));
+            using Pen minutePen = new Pen(Color.FromArgb(50, 255, 255, 255), 1);
 
             for (int i = 0; i < 60; i++)
             {
-                double angle = i * 6 * Math.PI / 180; // 6 degrees per minute
+                double angle = i * 6 * Math.PI / 180;
                 
                 if (i % 5 == 0) // Hour marker
                 {
-                    float markerRadius = clockRadius - 15;
-                    PointF point = new PointF(
-                        centerPoint.X + (float)Math.Sin(angle) * markerRadius,
-                        centerPoint.Y - (float)Math.Cos(angle) * markerRadius
+                    // Draw a small tech rectangle/chevron
+                    float r1 = clockRadius - 25;
+                    float r2 = clockRadius - 10;
+                    
+                    PointF p1 = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * r1,
+                        centerPoint.Y - (float)Math.Cos(angle) * r1
                     );
-                    g.FillEllipse(hourBrush, point.X - 3, point.Y - 3, 6, 6);
+                    PointF p2 = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * r2,
+                        centerPoint.Y - (float)Math.Cos(angle) * r2
+                    );
+                    
+                    g.DrawLine(hourPen, p1, p2);
+                    
+                    // Add a small dot at the inner tip
+                    g.FillRectangle(hourBrush, p1.X - 2, p1.Y - 2, 4, 4);
                 }
                 else // Minute marker
                 {
-                    float markerLength = 5;
-                    PointF innerPoint = new PointF(
-                        centerPoint.X + (float)Math.Sin(angle) * (clockRadius - markerLength),
-                        centerPoint.Y - (float)Math.Cos(angle) * (clockRadius - markerLength)
+                    float r1 = clockRadius - 15;
+                    float r2 = clockRadius - 10;
+                    
+                    PointF p1 = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * r1,
+                        centerPoint.Y - (float)Math.Cos(angle) * r1
                     );
-
-                    PointF outerPoint = new PointF(
-                        centerPoint.X + (float)Math.Sin(angle) * clockRadius,
-                        centerPoint.Y - (float)Math.Cos(angle) * clockRadius
+                    PointF p2 = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * r2,
+                        centerPoint.Y - (float)Math.Cos(angle) * r2
                     );
-                    g.DrawLine(minutePen, innerPoint, outerPoint);
+                    g.DrawLine(minutePen, p1, p2);
                 }
             }
         }
 
         private void DrawNumbers(Graphics g)
         {
-            using Font font = new Font("Arial", clockRadius / 8, FontStyle.Bold);
-            using SolidBrush brush = new SolidBrush(Color.White);
+            using Font font = new Font("Consolas", clockRadius / 10, FontStyle.Bold);
+            using SolidBrush brush = new SolidBrush(Color.FromArgb(180, 0, 255, 255));
 
             for (int hour = 1; hour <= 12; hour++)
             {
-                double angle = ((hour % 12) * 30) * Math.PI / 180; // 30 degrees per hour, starting at 12
-                float numberRadius = clockRadius - 100;
+                double angle = ((hour % 12) * 30) * Math.PI / 180; 
+                float numberRadius = clockRadius - 50;
 
                 PointF numberPoint = new PointF(
                     centerPoint.X + (float)Math.Sin(angle) * numberRadius,
@@ -456,17 +514,59 @@ namespace SCREEN_SAVER
         {
             DateTime now = DateTime.Now;
 
-            // Hour hand
+            // Hour hand - Hollow tech shape
             double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180;
-            DrawHand(g, hourAngle, clockRadius * 0.5f, 10, Color.White, 0, 0, 2, clockRadius * 0.15f);
+            DrawTechHand(g, hourAngle, clockRadius * 0.5f, 8, Color.FromArgb(200, 255, 255, 255));
 
-            // Minute hand
+            // Minute hand - Longer hollow tech shape
             double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
-            DrawHand(g, minuteAngle, clockRadius * 0.7f, 4, Color.White, 0, 0, 4, clockRadius * 0.15f);
+            DrawTechHand(g, minuteAngle, clockRadius * 0.75f, 5, Color.FromArgb(200, 0, 255, 255));
 
             // Draw projectiles instead of second hand
             DrawProjectiles(g);
             DrawBlasts(g);
+        }
+
+        private void DrawTechHand(Graphics g, double angle, float length, float width, Color color)
+        {
+            // Calculate points for a "sword" or "needle" shape
+            PointF start = centerPoint;
+            PointF end = new PointF(
+                centerPoint.X + (float)Math.Sin(angle) * length,
+                centerPoint.Y - (float)Math.Cos(angle) * length
+            );
+            
+            // Perpendicular vector for width
+            float dx = end.X - start.X;
+            float dy = end.Y - start.Y;
+            float len = (float)Math.Sqrt(dx*dx + dy*dy);
+            float px = -dy / len * width;
+            float py = dx / len * width;
+
+            PointF[] points = new PointF[]
+            {
+                new PointF(start.X + px, start.Y + py),
+                new PointF(end.X, end.Y),
+                new PointF(start.X - px, start.Y - py),
+                new PointF(start.X, start.Y) // Close loop
+            };
+
+            using (Pen pen = new Pen(color, 2))
+            {
+                g.DrawPolygon(pen, points);
+                
+                // Fill with low opacity
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(50, color)))
+                {
+                    g.FillPolygon(brush, points);
+                }
+            }
+            
+            // Draw a glowing tip
+            using (SolidBrush tipBrush = new SolidBrush(color))
+            {
+                g.FillEllipse(tipBrush, end.X - 2, end.Y - 2, 4, 4);
+            }
         }
 
         private void DrawBlasts(Graphics g)
@@ -584,31 +684,6 @@ namespace SCREEN_SAVER
                 g.DrawString(text, font, brush, x, y, format);
                 x += g.MeasureString(text, font, PointF.Empty, format).Width;
             }
-        }
-
-        private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0, float taperFactor = 4, float backLength = 0)
-        {
-            PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
-            PointF end = new PointF(center.X + (float)Math.Sin(angle) * length, center.Y - (float)Math.Cos(angle) * length);
-            PointF start = new PointF(center.X - (float)Math.Sin(angle) * backLength, center.Y + (float)Math.Cos(angle) * backLength);
-
-            float halfWidth = width / 2;
-            float endHalfWidth = width / taperFactor; // Taper factor for vintage look
-
-            PointF startLeft = new PointF(start.X + (float)Math.Sin(angle - Math.PI / 2) * halfWidth, start.Y - (float)Math.Cos(angle - Math.PI / 2) * halfWidth);
-            PointF startRight = new PointF(start.X + (float)Math.Sin(angle + Math.PI / 2) * halfWidth, start.Y - (float)Math.Cos(angle + Math.PI / 2) * halfWidth);
-
-            PointF endLeft = new PointF(end.X + (float)Math.Sin(angle - Math.PI / 2) * endHalfWidth, end.Y - (float)Math.Cos(angle - Math.PI / 2) * endHalfWidth);
-            PointF endRight = new PointF(end.X + (float)Math.Sin(angle + Math.PI / 2) * endHalfWidth, end.Y - (float)Math.Cos(angle + Math.PI / 2) * endHalfWidth);
-
-            PointF[] points = { startLeft, startRight, endRight, endLeft };
-
-            using SolidBrush brush = new SolidBrush(color);
-            g.FillPolygon(brush, points);
-
-            // Optional: draw outline for definition
-            using Pen pen = new Pen(Color.Black, 1);
-            g.DrawPolygon(pen, points);
         }
 
         protected override void OnResize(EventArgs e)
