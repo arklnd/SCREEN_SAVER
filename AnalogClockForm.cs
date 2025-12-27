@@ -228,18 +228,26 @@ namespace SCREEN_SAVER
 
         private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0)
         {
-            PointF handEnd = new PointF(
-                centerPoint.X + dx + (float)Math.Sin(angle) * length,
-                centerPoint.Y + dy - (float)Math.Cos(angle) * length
-            );
-
             PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
+            PointF end = new PointF(center.X + (float)Math.Sin(angle) * length, center.Y - (float)Math.Cos(angle) * length);
 
-            using Pen pen = new Pen(color, width);
-            pen.EndCap = LineCap.Round;
-            pen.StartCap = LineCap.Round;
+            float halfWidth = width / 2;
+            float endHalfWidth = width / 4; // Taper to thinner at the end for vintage look
 
-            g.DrawLine(pen, center, handEnd);
+            PointF centerLeft = new PointF(center.X + (float)Math.Sin(angle - Math.PI / 2) * halfWidth, center.Y - (float)Math.Cos(angle - Math.PI / 2) * halfWidth);
+            PointF centerRight = new PointF(center.X + (float)Math.Sin(angle + Math.PI / 2) * halfWidth, center.Y - (float)Math.Cos(angle + Math.PI / 2) * halfWidth);
+
+            PointF endLeft = new PointF(end.X + (float)Math.Sin(angle - Math.PI / 2) * endHalfWidth, end.Y - (float)Math.Cos(angle - Math.PI / 2) * endHalfWidth);
+            PointF endRight = new PointF(end.X + (float)Math.Sin(angle + Math.PI / 2) * endHalfWidth, end.Y - (float)Math.Cos(angle + Math.PI / 2) * endHalfWidth);
+
+            PointF[] points = { centerLeft, centerRight, endRight, endLeft };
+
+            using SolidBrush brush = new SolidBrush(color);
+            g.FillPolygon(brush, points);
+
+            // Optional: draw outline for definition
+            using Pen pen = new Pen(Color.Black, 1);
+            g.DrawPolygon(pen, points);
         }
 
         protected override void OnResize(EventArgs e)
