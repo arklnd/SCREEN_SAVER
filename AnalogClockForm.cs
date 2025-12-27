@@ -420,26 +420,33 @@ namespace SCREEN_SAVER
                         if (alpha > 255) alpha = 255;
                         if (alpha < 0) alpha = 0;
                         
-                        // Energy shield effect
-                        using (Pen blastPen = new Pen(Color.FromArgb(alpha, blast.color), 4))
+                        try
                         {
-                            g.DrawArc(blastPen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
-                                     clockRadius * 2, clockRadius * 2, angle - sweep/2, sweep);
-                        }
-                        
-                        // Hexagon fragment effect at impact
-                        using (SolidBrush hexBrush = new SolidBrush(Color.FromArgb(alpha / 2, blast.color)))
-                        {
-                            PointF[] hex = new PointF[6];
-                            for(int k=0; k<6; k++) {
-                                float ha = angle * (float)Math.PI/180 + k * (float)Math.PI/3;
-                                hex[k] = new PointF(
-                                    blast.position.X + 15 * (float)Math.Cos(ha),
-                                    blast.position.Y + 15 * (float)Math.Sin(ha)
-                                );
+                            // Energy shield effect
+                            if (sweep > 0.5f)
+                            {
+                                using (Pen blastPen = new Pen(Color.FromArgb(alpha, blast.color), 4))
+                                {
+                                    g.DrawArc(blastPen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
+                                             clockRadius * 2, clockRadius * 2, angle - sweep/2, sweep);
+                                }
                             }
-                            g.FillPolygon(hexBrush, hex);
+                            
+                            // Hexagon fragment effect at impact
+                            using (SolidBrush hexBrush = new SolidBrush(Color.FromArgb(alpha / 2, blast.color)))
+                            {
+                                PointF[] hex = new PointF[6];
+                                for(int k=0; k<6; k++) {
+                                    float ha = angle * (float)Math.PI/180 + k * (float)Math.PI/3;
+                                    hex[k] = new PointF(
+                                        blast.position.X + 15 * (float)Math.Cos(ha),
+                                        blast.position.Y + 15 * (float)Math.Sin(ha)
+                                    );
+                                }
+                                g.FillPolygon(hexBrush, hex);
+                            }
                         }
+                        catch { } // Ignore GDI+ errors during animation
                     }
                 }
             }
