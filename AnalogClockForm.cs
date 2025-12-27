@@ -154,12 +154,12 @@ namespace SCREEN_SAVER
                 float centerX = targetClockArea.Value.X - this.Location.X + targetClockArea.Value.Width / 2f;
                 float centerY = targetClockArea.Value.Y - this.Location.Y + targetClockArea.Value.Height / 2f;
                 centerPoint = new PointF(centerX, centerY);
-                clockRadius = Math.Min(targetClockArea.Value.Width, targetClockArea.Value.Height) / 3f;
+                clockRadius = Math.Min(targetClockArea.Value.Width, targetClockArea.Value.Height) / 3.5f;
             }
             else
             {
                 centerPoint = new PointF(ClientSize.Width / 2f, ClientSize.Height / 2f);
-                clockRadius = Math.Min(ClientSize.Width, ClientSize.Height) / 3f;
+                clockRadius = Math.Min(ClientSize.Width, ClientSize.Height) / 3.5f;
             }
         }
 
@@ -494,7 +494,7 @@ namespace SCREEN_SAVER
             for (int hour = 1; hour <= 12; hour++)
             {
                 double angle = ((hour % 12) * 30) * Math.PI / 180; 
-                float numberRadius = clockRadius - 50;
+                float numberRadius = clockRadius - 70;
 
                 PointF numberPoint = new PointF(
                     centerPoint.X + (float)Math.Sin(angle) * numberRadius,
