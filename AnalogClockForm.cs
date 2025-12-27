@@ -305,6 +305,8 @@ namespace SCREEN_SAVER
         {
             base.OnPaint(e);
 
+            if (clockRadius < 5 || ClientSize.Width < 5 || ClientSize.Height < 5) return;
+
             lock (syncLock)
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -536,6 +538,8 @@ namespace SCREEN_SAVER
 
         private void DrawTechHand(Graphics g, double angle, float length, float width, Color color)
         {
+            if (length < 1) return;
+
             // Calculate points for a "sword" or "needle" shape
             PointF start = centerPoint;
             PointF end = new PointF(
