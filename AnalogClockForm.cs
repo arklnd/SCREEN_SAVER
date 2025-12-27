@@ -4,6 +4,9 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace SCREEN_SAVER
 {
@@ -14,7 +17,8 @@ namespace SCREEN_SAVER
         private readonly bool isPreview = false;
         private Rectangle? targetClockArea = null;
 
-        private System.Windows.Forms.Timer timer;
+        private CancellationTokenSource cancellationTokenSource;
+        private readonly object syncLock = new object();
         private PointF centerPoint;
         private float clockRadius;
 
@@ -134,17 +138,13 @@ namespace SCREEN_SAVER
 
         private void InitializeClock()
         {
-            // Set up timer to update clock every 20ms for smooth animation
-            timer = new System.Windows.Forms.Timer();
-            timer.Interval = 20; // 20ms for smoother updates
-            timer.Tick += Timer_Tick;
-            timer.Start();
-
             projectiles = new List<Projectile>();
             blasts = new List<Blast>();
 
             // Calculate clock center and radius
             UpdateClockDimensions();
+
+            StartAnimation();
         }
 
         private void UpdateClockDimensions()
@@ -163,13 +163,54 @@ namespace SCREEN_SAVER
             }
         }
 
-        private void Timer_Tick(object sender, EventArgs e)
+        private void StartAnimation()
+        {
+            cancellationTokenSource = new CancellationTokenSource();
+            Task.Run(() => AnimationLoop(cancellationTokenSource.Token));
+        }
+
+        private void AnimationLoop(CancellationToken token)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            long lastTime = stopwatch.ElapsedMilliseconds;
+
+            while (!token.IsCancellationRequested)
+            {
+                long currentTime = stopwatch.ElapsedMilliseconds;
+                float dt = (currentTime - lastTime) / 1000f;
+                lastTime = currentTime;
+
+                // Cap dt to avoid huge jumps
+                if (dt > 0.1f) dt = 0.1f;
+
+                lock (syncLock)
+                {
+                    UpdatePhysics(dt);
+                }
+
+                try
+                {
+                    if (!IsDisposed && IsHandleCreated)
+                    {
+                        Invalidate();
+                    }
+                }
+                catch { }
+
+                // Target 60 FPS (approx 16ms)
+                int elapsed = (int)(stopwatch.ElapsedMilliseconds - currentTime);
+                int sleepTime = 16 - elapsed;
+                if (sleepTime > 0) Thread.Sleep(sleepTime);
+            }
+        }
+
+        private void UpdatePhysics(float dt)
         {
             DateTime now = DateTime.Now;
             if (now.Second != lastSecond)
             {
                 double angle = now.Second * 6 * Math.PI / 180;
-                float speed = clockRadius * 1.5f; // Speed relative to clock size
+                float speed = clockRadius * 1.2f; // Adjusted speed for real-time update
                 float vx = (float)Math.Sin(angle) * speed;
                 float vy = -(float)Math.Cos(angle) * speed;
                 
@@ -188,8 +229,6 @@ namespace SCREEN_SAVER
                 });
                 lastSecond = now.Second;
             }
-
-            float dt = timer.Interval / 1000f;
 
             for (int i = projectiles.Count - 1; i >= 0; i--)
             {
@@ -247,31 +286,32 @@ namespace SCREEN_SAVER
 
             // Remove old blasts
             blasts.RemoveAll(b => (now - b.startTime).TotalSeconds > 0.5);
-
-            Invalidate(); // Redraw the clock
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
 
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+            lock (syncLock)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
-            // Draw clock face
-            DrawClockFace(e.Graphics);
+                // Draw clock face
+                DrawClockFace(e.Graphics);
 
-            // Draw hour markers
-            DrawHourMarkers(e.Graphics);
+                // Draw hour markers
+                DrawHourMarkers(e.Graphics);
 
-            // Draw numbers
-            DrawNumbers(e.Graphics);
+                // Draw numbers
+                DrawNumbers(e.Graphics);
 
-            // Draw clock hands
-            DrawClockHands(e.Graphics);
+                // Draw clock hands
+                DrawClockHands(e.Graphics);
 
-            // Draw date and time
-            DrawDateAndTime(e.Graphics);
+                // Draw date and time
+                DrawDateAndTime(e.Graphics);
+            }
         }
 
         private void DrawClockFace(Graphics g)
@@ -489,8 +529,7 @@ namespace SCREEN_SAVER
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            timer?.Stop();
-            timer?.Dispose();
+            cancellationTokenSource?.Cancel();
             base.OnFormClosing(e);
         }
 
