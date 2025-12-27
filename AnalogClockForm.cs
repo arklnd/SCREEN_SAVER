@@ -326,37 +326,105 @@ namespace SCREEN_SAVER
 
         private void DrawClockFace(Graphics g)
         {
-            using Pen pen = new Pen(Color.White, 3);
-            g.DrawEllipse(pen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
-                         clockRadius * 2, clockRadius * 2);
+            // 1. Fill with a subtle radial gradient for depth
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path.AddEllipse(centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
+                               clockRadius * 2, clockRadius * 2);
+                using (PathGradientBrush brush = new PathGradientBrush(path))
+                {
+                    brush.CenterColor = Color.FromArgb(50, 60, 80); // Dark blue-ish center
+                    brush.SurroundColors = new Color[] { Color.Black };
+                    g.FillPath(brush, path);
+                }
+            }
 
-            // Draw center dot
-            using SolidBrush brush = new SolidBrush(Color.White);
-            g.FillEllipse(brush, centerPoint.X - 5, centerPoint.Y - 5, 10, 10);
+            // 2. Draw crosshair/grid
+            using (Pen gridPen = new Pen(Color.FromArgb(30, 200, 200, 255), 1))
+            {
+                g.DrawLine(gridPen, centerPoint.X - clockRadius, centerPoint.Y, centerPoint.X + clockRadius, centerPoint.Y);
+                g.DrawLine(gridPen, centerPoint.X, centerPoint.Y - clockRadius, centerPoint.X, centerPoint.Y + clockRadius);
+                g.DrawEllipse(gridPen, centerPoint.X - clockRadius * 0.5f, centerPoint.Y - clockRadius * 0.5f, clockRadius, clockRadius);
+            }
+
+            // 3. Draw the main rim
+            using (Pen pen = new Pen(Color.FromArgb(150, 255, 255, 255), 2))
+            {
+                g.DrawEllipse(pen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
+                             clockRadius * 2, clockRadius * 2);
+            }
+
+            // 4. Draw reactive arcs for blasts on the rim
+            DateTime now = DateTime.Now;
+            foreach (var blast in blasts)
+            {
+                // Check if blast is near the rim (within some tolerance)
+                float dx = blast.position.X - centerPoint.X;
+                float dy = blast.position.Y - centerPoint.Y;
+                float dist = (float)Math.Sqrt(dx * dx + dy * dy);
+
+                // If it's close to the radius (e.g. within 20 pixels), it's a rim hit
+                if (Math.Abs(dist - clockRadius) < 20)
+                {
+                    double age = (now - blast.startTime).TotalSeconds;
+                    if (age < 0.8) 
+                    {
+                        float angle = (float)(Math.Atan2(dy, dx) * 180 / Math.PI);
+                        float sweep = (float)(45 * (1.0 - age / 0.8)); // Shrink sweep
+                        int alpha = (int)(255 * (1.0 - age / 0.8));
+                        if (alpha > 255) alpha = 255;
+                        if (alpha < 0) alpha = 0;
+                        
+                        using (Pen blastPen = new Pen(Color.FromArgb(alpha, blast.color), 6))
+                        {
+                            g.DrawArc(blastPen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
+                                     clockRadius * 2, clockRadius * 2, angle - sweep/2, sweep);
+                        }
+                    }
+                }
+            }
+
+            // 5. Draw center dot with a "pulse"
+            float pulse = (float)(Math.Sin(now.Millisecond / 1000.0 * 2 * Math.PI) * 2 + 6); // 4 to 8
+            using (SolidBrush brush = new SolidBrush(Color.White))
+            {
+                g.FillEllipse(brush, centerPoint.X - pulse, centerPoint.Y - pulse, pulse * 2, pulse * 2);
+            }
         }
 
         private void DrawHourMarkers(Graphics g)
         {
-            using Pen hourPen = new Pen(Color.White, 2);
-            using Pen minutePen = new Pen(Color.Gray, 1);
+            using Pen hourPen = new Pen(Color.FromArgb(200, 255, 255, 255), 3);
+            using Pen minutePen = new Pen(Color.FromArgb(100, 200, 200, 200), 1);
+            using SolidBrush hourBrush = new SolidBrush(Color.White);
 
             for (int i = 0; i < 60; i++)
             {
                 double angle = i * 6 * Math.PI / 180; // 6 degrees per minute
-                float markerLength = (i % 5 == 0) ? 20 : 10; // Longer for hours
-                Pen pen = (i % 5 == 0) ? hourPen : minutePen;
+                
+                if (i % 5 == 0) // Hour marker
+                {
+                    float markerRadius = clockRadius - 15;
+                    PointF point = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * markerRadius,
+                        centerPoint.Y - (float)Math.Cos(angle) * markerRadius
+                    );
+                    g.FillEllipse(hourBrush, point.X - 3, point.Y - 3, 6, 6);
+                }
+                else // Minute marker
+                {
+                    float markerLength = 5;
+                    PointF innerPoint = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * (clockRadius - markerLength),
+                        centerPoint.Y - (float)Math.Cos(angle) * (clockRadius - markerLength)
+                    );
 
-                PointF innerPoint = new PointF(
-                    centerPoint.X + (float)Math.Sin(angle) * (clockRadius - markerLength),
-                    centerPoint.Y - (float)Math.Cos(angle) * (clockRadius - markerLength)
-                );
-
-                PointF outerPoint = new PointF(
-                    centerPoint.X + (float)Math.Sin(angle) * clockRadius,
-                    centerPoint.Y - (float)Math.Cos(angle) * clockRadius
-                );
-
-                g.DrawLine(pen, innerPoint, outerPoint);
+                    PointF outerPoint = new PointF(
+                        centerPoint.X + (float)Math.Sin(angle) * clockRadius,
+                        centerPoint.Y - (float)Math.Cos(angle) * clockRadius
+                    );
+                    g.DrawLine(minutePen, innerPoint, outerPoint);
+                }
             }
         }
 
