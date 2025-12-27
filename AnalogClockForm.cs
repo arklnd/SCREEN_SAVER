@@ -232,11 +232,12 @@ namespace SCREEN_SAVER
 
             for (int i = projectiles.Count - 1; i >= 0; i--)
             {
+                const double projectileLifespan = 10.0; // seconds 
                 var p = projectiles[i];
                 double age = (now - p.CreationTime).TotalSeconds;
                 
                 // Update trail - monotonically decreasing length
-                int maxTrail = (int)(50 * (1.0 - age / 30.0));
+                int maxTrail = (int)(50 * (1.0 - age / projectileLifespan));
                 if (maxTrail < 0) maxTrail = 0;
 
                 p.Trail.Add(p.Position);
@@ -280,8 +281,8 @@ namespace SCREEN_SAVER
                     }
                 }
 
-                // Lifespan 30s - end with a blast
-                if (age > 30)
+                // Lifespan projectileLifespan-s - end with a blast
+                if (age > projectileLifespan)
                 {
                     blasts.Add(new Blast 
                     { 
