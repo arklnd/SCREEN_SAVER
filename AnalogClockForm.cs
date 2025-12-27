@@ -17,13 +17,23 @@ namespace SCREEN_SAVER
         private PointF centerPoint;
         private float clockRadius;
 
-        private struct Projectile
+        private class Projectile
         {
             public DateTime startTime;
             public double angle;
+            public bool hasExploded;
+        }
+
+        private class Blast
+        {
+            public PointF position;
+            public DateTime startTime;
+            public Color color;
         }
 
         private List<Projectile> projectiles;
+        private List<Blast> blasts;
+        private Random random = new Random();
         private int lastSecond = -1;
 
         // Import user32.dll for preview window
@@ -116,6 +126,7 @@ namespace SCREEN_SAVER
             timer.Start();
 
             projectiles = new List<Projectile>();
+            blasts = new List<Blast>();
 
             // Calculate clock center and radius
             UpdateClockDimensions();
@@ -135,6 +146,34 @@ namespace SCREEN_SAVER
                 projectiles.Add(new Projectile { startTime = now, angle = now.Second * 6 * Math.PI / 180 });
                 lastSecond = now.Second;
             }
+
+            // Check for impacts
+            foreach (var p in projectiles)
+            {
+                if (!p.hasExploded && (now - p.startTime).TotalSeconds >= 1.0)
+                {
+                    p.hasExploded = true;
+                    float x = centerPoint.X + (float)Math.Sin(p.angle) * clockRadius;
+                    float y = centerPoint.Y - (float)Math.Cos(p.angle) * clockRadius;
+                    
+                    // Random bright color for balloon
+                    Color blastColor = Color.FromArgb(
+                        random.Next(150, 255),
+                        random.Next(150, 255),
+                        random.Next(150, 255));
+                        
+                    blasts.Add(new Blast 
+                    { 
+                        position = new PointF(x, y), 
+                        startTime = now,
+                        color = blastColor
+                    });
+                }
+            }
+
+            // Remove old blasts
+            blasts.RemoveAll(b => (now - b.startTime).TotalSeconds > 0.5);
+
             Invalidate(); // Redraw the clock
         }
 
@@ -238,6 +277,35 @@ namespace SCREEN_SAVER
 
             // Draw projectiles instead of second hand
             DrawProjectiles(g);
+            DrawBlasts(g);
+        }
+
+        private void DrawBlasts(Graphics g)
+        {
+            DateTime now = DateTime.Now;
+            // Create a copy to avoid modification exception if accessed from other threads (though Timer is UI thread)
+            // But here we are just reading.
+            for (int i = 0; i < blasts.Count; i++)
+            {
+                var blast = blasts[i];
+                double t = (now - blast.startTime).TotalSeconds;
+                if (t > 0.5) continue;
+
+                // Balloon expands and fades
+                float progress = (float)(t / 0.5);
+                float size = 10f + 100f * progress; // Expands from 10 to 110
+                int alpha = (int)(255 * (1 - progress));
+                if (alpha < 0) alpha = 0;
+                if (alpha > 255) alpha = 255;
+                
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(alpha, blast.color)))
+                {
+                    g.FillEllipse(brush, 
+                        blast.position.X - size / 2, 
+                        blast.position.Y - size / 2, 
+                        size, size);
+                }
+            }
         }
 
         private void DrawProjectiles(Graphics g)
