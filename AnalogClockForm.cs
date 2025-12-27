@@ -236,7 +236,7 @@ namespace SCREEN_SAVER
                 double age = (now - p.CreationTime).TotalSeconds;
                 
                 // Update trail - monotonically decreasing length
-                int maxTrail = (int)(20 * (1.0 - age / 30.0));
+                int maxTrail = (int)(50 * (1.0 - age / 30.0));
                 if (maxTrail < 0) maxTrail = 0;
 
                 p.Trail.Add(p.Position);
@@ -294,7 +294,7 @@ namespace SCREEN_SAVER
             }
 
             // Remove old blasts
-            blasts.RemoveAll(b => (now - b.startTime).TotalSeconds > 0.5);
+            blasts.RemoveAll(b => (now - b.startTime).TotalSeconds > 1.0);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -407,21 +407,32 @@ namespace SCREEN_SAVER
             {
                 var blast = blasts[i];
                 double t = (now - blast.startTime).TotalSeconds;
-                if (t > 0.5) continue;
+                if (t > 1.0) continue;
 
                 // Balloon expands and fades
-                float progress = (float)(t / 0.5);
-                float size = 10f + 100f * progress; // Expands from 10 to 110
-                int alpha = (int)(255 * (1 - progress));
+                float progress = (float)(t / 1.0);
+                float size = 40f + 500f * progress; // Expands from 40 to 540
+                
+                // Smoother fade using a non-linear curve (e.g., squared) for more natural dissipation
+                float fadeProgress = 1.0f - progress;
+                int alpha = (int)(255 * fadeProgress * fadeProgress); 
                 if (alpha < 0) alpha = 0;
                 if (alpha > 255) alpha = 255;
                 
-                using (SolidBrush brush = new SolidBrush(Color.FromArgb(alpha, blast.color)))
+                RectangleF rect = new RectangleF(
+                    blast.position.X - size / 2, 
+                    blast.position.Y - size / 2, 
+                    size, size);
+
+                using (GraphicsPath path = new GraphicsPath())
                 {
-                    g.FillEllipse(brush, 
-                        blast.position.X - size / 2, 
-                        blast.position.Y - size / 2, 
-                        size, size);
+                    path.AddEllipse(rect);
+                    using (PathGradientBrush brush = new PathGradientBrush(path))
+                    {
+                        brush.CenterColor = Color.FromArgb(alpha, blast.color);
+                        brush.SurroundColors = new Color[] { Color.FromArgb(0, blast.color) };
+                        g.FillPath(brush, path);
+                    }
                 }
             }
         }
@@ -430,18 +441,24 @@ namespace SCREEN_SAVER
         {
             foreach (var p in projectiles)
             {
-                // Draw trail
+                // Draw trail with connected lines for smoothness
                 if (p.Trail.Count > 1)
                 {
-                    for (int i = 0; i < p.Trail.Count; i++)
+                    for (int i = 0; i < p.Trail.Count - 1; i++)
                     {
-                        float alpha = 255f * ((float)i / p.Trail.Count);
-                        float size = 6f * ((float)i / p.Trail.Count);
-                        if (size < 1) size = 1;
+                        float progress = (float)i / p.Trail.Count;
+                        float nextProgress = (float)(i + 1) / p.Trail.Count;
                         
-                        using (SolidBrush brush = new SolidBrush(Color.FromArgb((int)alpha, p.Color)))
+                        float alpha = 255f * progress;
+                        float size = 6f * progress;
+                        if (size < 0.5f) size = 0.5f; // Minimum visible size
+                        
+                        // Draw a line segment between points
+                        using (Pen pen = new Pen(Color.FromArgb((int)alpha, p.Color), size))
                         {
-                            g.FillEllipse(brush, p.Trail[i].X - size/2, p.Trail[i].Y - size/2, size, size);
+                            pen.StartCap = LineCap.Round;
+                            pen.EndCap = LineCap.Round;
+                            g.DrawLine(pen, p.Trail[i], p.Trail[i+1]);
                         }
                     }
                 }
