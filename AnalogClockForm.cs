@@ -20,9 +20,12 @@ namespace SCREEN_SAVER
 
         private class Projectile
         {
-            public DateTime startTime;
-            public double angle;
-            public bool hasBlasted;
+            public PointF Position;
+            public PointF Velocity;
+            public Color Color;
+            public DateTime CreationTime;
+            public bool HasBlasted;
+            public List<PointF> Trail = new List<PointF>();
         }
 
         private class Blast
@@ -165,31 +168,74 @@ namespace SCREEN_SAVER
             DateTime now = DateTime.Now;
             if (now.Second != lastSecond)
             {
-                projectiles.Add(new Projectile { startTime = now, angle = now.Second * 6 * Math.PI / 180 });
+                double angle = now.Second * 6 * Math.PI / 180;
+                float speed = clockRadius * 1.5f; // Speed relative to clock size
+                float vx = (float)Math.Sin(angle) * speed;
+                float vy = -(float)Math.Cos(angle) * speed;
+                
+                Color projColor = Color.FromArgb(
+                    random.Next(100, 255),
+                    random.Next(100, 255),
+                    random.Next(100, 255));
+
+                projectiles.Add(new Projectile 
+                { 
+                    Position = centerPoint,
+                    Velocity = new PointF(vx, vy),
+                    Color = projColor,
+                    CreationTime = now,
+                    HasBlasted = false
+                });
                 lastSecond = now.Second;
             }
 
-            // Check for impacts
-            foreach (var p in projectiles)
+            float dt = timer.Interval / 1000f;
+
+            for (int i = projectiles.Count - 1; i >= 0; i--)
             {
-                if (!p.hasBlasted && (now - p.startTime).TotalSeconds >= 1.0)
+                var p = projectiles[i];
+                
+                // Update trail
+                p.Trail.Add(p.Position);
+                if (p.Trail.Count > 20) p.Trail.RemoveAt(0);
+
+                // Update position
+                p.Position.X += p.Velocity.X * dt;
+                p.Position.Y += p.Velocity.Y * dt;
+
+                // Bounce logic
+                if (p.Position.X < 0) { p.Position.X = 0; p.Velocity.X = -p.Velocity.X; }
+                if (p.Position.X > ClientSize.Width) { p.Position.X = ClientSize.Width; p.Velocity.X = -p.Velocity.X; }
+                if (p.Position.Y < 0) { p.Position.Y = 0; p.Velocity.Y = -p.Velocity.Y; }
+                if (p.Position.Y > ClientSize.Height) { p.Position.Y = ClientSize.Height; p.Velocity.Y = -p.Velocity.Y; }
+
+                // Blast logic
+                if (!p.HasBlasted)
                 {
-                    p.hasBlasted = true;
-                    float x = centerPoint.X + (float)Math.Sin(p.angle) * clockRadius;
-                    float y = centerPoint.Y - (float)Math.Cos(p.angle) * clockRadius;
-                    
-                    // Random bright color for balloon
-                    Color blastColor = Color.FromArgb(
-                        random.Next(150, 255),
-                        random.Next(150, 255),
-                        random.Next(150, 255));
-                        
-                    blasts.Add(new Blast 
-                    { 
-                        position = new PointF(x, y), 
-                        startTime = now,
-                        color = blastColor
-                    });
+                    float dx = p.Position.X - centerPoint.X;
+                    float dy = p.Position.Y - centerPoint.Y;
+                    float distSq = dx*dx + dy*dy;
+                    if (distSq >= clockRadius * clockRadius)
+                    {
+                        p.HasBlasted = true;
+                        Color blastColor = Color.FromArgb(
+                            random.Next(150, 255),
+                            random.Next(150, 255),
+                            random.Next(150, 255));
+                            
+                        blasts.Add(new Blast 
+                        { 
+                            position = p.Position, 
+                            startTime = now,
+                            color = blastColor
+                        });
+                    }
+                }
+
+                // Lifespan 30s
+                if ((now - p.CreationTime).TotalSeconds > 30)
+                {
+                    projectiles.RemoveAt(i);
                 }
             }
 
@@ -333,41 +379,28 @@ namespace SCREEN_SAVER
 
         private void DrawProjectiles(Graphics g)
         {
-            DateTime now = DateTime.Now;
-            int trailSteps = 20;
-            double trailDuration = 0.3;
-
-            for (int i = projectiles.Count - 1; i >= 0; i--)
+            foreach (var p in projectiles)
             {
-                var p = projectiles[i];
-                double t = (now - p.startTime).TotalSeconds;
-                
-                if (t > 60 + trailDuration)
+                // Draw trail
+                if (p.Trail.Count > 1)
                 {
-                    projectiles.RemoveAt(i);
-                    continue;
-                }
-
-                for (int step = 0; step < trailSteps; step++)
-                {
-                    double trailT = t - (step * (trailDuration / trailSteps));
-                    
-                    if (trailT < 0) continue;
-
-                    float distance = (float)(clockRadius * trailT);
-                    PointF pos = new PointF(
-                        centerPoint.X + (float)Math.Sin(p.angle) * distance,
-                        centerPoint.Y - (float)Math.Cos(p.angle) * distance
-                    );
-
-                    int alpha = (int)(255 * (1.0 - (double)step / trailSteps));
-                    float size = 6f * (float)(1.0 - (double)step / trailSteps);
-                    if (size < 1) size = 1;
-
-                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(alpha, Color.Red)))
+                    for (int i = 0; i < p.Trail.Count; i++)
                     {
-                        g.FillEllipse(brush, pos.X - size / 2, pos.Y - size / 2, size, size);
+                        float alpha = 255f * ((float)i / p.Trail.Count);
+                        float size = 6f * ((float)i / p.Trail.Count);
+                        if (size < 1) size = 1;
+                        
+                        using (SolidBrush brush = new SolidBrush(Color.FromArgb((int)alpha, p.Color)))
+                        {
+                            g.FillEllipse(brush, p.Trail[i].X - size/2, p.Trail[i].Y - size/2, size, size);
+                        }
                     }
+                }
+                
+                // Draw head
+                using (SolidBrush brush = new SolidBrush(p.Color))
+                {
+                    g.FillEllipse(brush, p.Position.X - 3, p.Position.Y - 3, 6, 6);
                 }
             }
         }
