@@ -427,8 +427,12 @@ namespace SCREEN_SAVER
             }
 
             // 6. Draw center "Reactor"
-            float pulse = (float)(Math.Sin(now.Millisecond / 1000.0 * 4 * Math.PI) * 3 + 8); 
-            using (SolidBrush brush = new SolidBrush(Color.FromArgb(200, 0, 255, 255)))
+            // Sync pulse with projectile launch (happens at start of second)
+            float t = now.Millisecond / 1000.0f;
+            float pulseIntensity = (float)Math.Pow(1.0f - t, 8); // Sharp decay
+            float pulse = 8 + 12 * pulseIntensity; 
+            
+            using (SolidBrush brush = new SolidBrush(Color.FromArgb((int)(150 + 100 * pulseIntensity), 0, 255, 255)))
             {
                 g.FillEllipse(brush, centerPoint.X - pulse, centerPoint.Y - pulse, pulse * 2, pulse * 2);
             }
