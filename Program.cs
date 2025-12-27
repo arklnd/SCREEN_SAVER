@@ -71,19 +71,29 @@ namespace SCREEN_SAVER
         static void ShowPreview(string previewHandle)
         {
             IntPtr handle = new(long.Parse(previewHandle));
-            Application.Run(new ScreensaverForm(handle, true));
+            Application.Run(new AnalogClockForm(handle, true));
         }
 
         static void ShowScreensaver()
         {
-            Rectangle virtualBounds = Rectangle.Empty;
-            foreach (Screen screen in Screen.AllScreens)
+            // Create a form for each screen
+            AnalogClockForm[] forms = new AnalogClockForm[Screen.AllScreens.Length];
+            for (int i = 0; i < Screen.AllScreens.Length; i++)
             {
-                virtualBounds = Rectangle.Union(virtualBounds, screen.Bounds);
+                forms[i] = new AnalogClockForm(Screen.AllScreens[i].Bounds);
+                forms[i].Show();
             }
-            ScreensaverForm screensaver = new(virtualBounds);
-            screensaver.Show();
-            Application.Run();
+
+            // If only one screen, run the application with that form
+            if (forms.Length == 1)
+            {
+                Application.Run(forms[0]);
+            }
+            else
+            {
+                // For multiple screens, run without a main form
+                Application.Run();
+            }
         }
     }
 }
