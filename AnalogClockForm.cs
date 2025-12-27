@@ -178,13 +178,13 @@ namespace SCREEN_SAVER
 
         private void DrawNumbers(Graphics g)
         {
-            using Font font = new Font("Arial", clockRadius / 10, FontStyle.Bold);
+            using Font font = new Font("Arial", clockRadius / 8, FontStyle.Bold);
             using SolidBrush brush = new SolidBrush(Color.White);
 
             for (int hour = 1; hour <= 12; hour++)
             {
                 double angle = ((hour % 12) * 30) * Math.PI / 180; // 30 degrees per hour, starting at 12
-                float numberRadius = clockRadius - 40;
+                float numberRadius = clockRadius - 100;
 
                 PointF numberPoint = new PointF(
                     centerPoint.X + (float)Math.Sin(angle) * numberRadius,
@@ -204,31 +204,42 @@ namespace SCREEN_SAVER
         {
             DateTime now = DateTime.Now;
 
-            // Hour hand
+            // Hour hand shadow
             double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180;
-            DrawHand(g, hourAngle, clockRadius * 0.5f, 6, Color.White);
+            DrawHand(g, hourAngle, clockRadius * 0.5f, 10, Color.Gray, 2, 2);
+
+            // Hour hand
+            DrawHand(g, hourAngle, clockRadius * 0.5f, 8, Color.White);
+
+            // Minute hand shadow
+            double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
+            DrawHand(g, minuteAngle, clockRadius * 0.7f, 6, Color.Gray, 2, 2);
 
             // Minute hand
-            double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
             DrawHand(g, minuteAngle, clockRadius * 0.7f, 4, Color.White);
 
-            // Second hand
+            // Second hand shadow
             double secondAngle = now.Second * 6 * Math.PI / 180;
+            DrawHand(g, secondAngle, clockRadius * 0.8f, 4, Color.DarkRed, 1, 1);
+
+            // Second hand
             DrawHand(g, secondAngle, clockRadius * 0.8f, 2, Color.Red);
         }
 
-        private void DrawHand(Graphics g, double angle, float length, float width, Color color)
+        private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0)
         {
             PointF handEnd = new PointF(
-                centerPoint.X + (float)Math.Sin(angle) * length,
-                centerPoint.Y - (float)Math.Cos(angle) * length
+                centerPoint.X + dx + (float)Math.Sin(angle) * length,
+                centerPoint.Y + dy - (float)Math.Cos(angle) * length
             );
+
+            PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
 
             using Pen pen = new Pen(color, width);
             pen.EndCap = LineCap.Round;
             pen.StartCap = LineCap.Round;
 
-            g.DrawLine(pen, centerPoint, handEnd);
+            g.DrawLine(pen, center, handEnd);
         }
 
         protected override void OnResize(EventArgs e)
