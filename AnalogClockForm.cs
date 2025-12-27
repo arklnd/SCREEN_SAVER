@@ -195,6 +195,9 @@ namespace SCREEN_SAVER
 
             // Draw clock hands
             DrawClockHands(e.Graphics);
+
+            // Draw date and time
+            DrawDateAndTime(e.Graphics);
         }
 
         private void DrawClockFace(Graphics g)
@@ -349,6 +352,42 @@ namespace SCREEN_SAVER
                 }
             }
         }
+
+        private void DrawDateAndTime(Graphics g)
+        {
+            DateTime now = DateTime.Now;
+            
+            var parts = new (string text, Color color)[]
+            {
+                (now.ToString("dddd, "), Color.DeepSkyBlue),
+                (now.ToString("MMMM dd, yyyy"), Color.LightGreen),
+                ("        ", Color.White),
+                (now.ToString("hh:mm:ss "), Color.White),
+                (now.ToString("tt"), Color.LightGray)
+            };
+
+            float fontSize = Math.Min(14, clockRadius / 10);
+            using Font font = new Font("Arial", fontSize, FontStyle.Bold);
+            using StringFormat format = new StringFormat(StringFormat.GenericTypographic);
+
+            // Calculate total width
+            float totalWidth = 0;
+            foreach (var part in parts)
+            {
+                totalWidth += g.MeasureString(part.text, font, PointF.Empty, format).Width;
+            }
+            
+            float x = (ClientSize.Width - totalWidth) / 2;
+            float y = ClientSize.Height - g.MeasureString("A", font).Height - (ClientSize.Height * 0.05f);
+
+            foreach (var (text, color) in parts)
+            {
+                using SolidBrush brush = new SolidBrush(color);
+                g.DrawString(text, font, brush, x, y, format);
+                x += g.MeasureString(text, font, PointF.Empty, format).Width;
+            }
+        }
+
         private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0, float taperFactor = 4)
         {
             PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
