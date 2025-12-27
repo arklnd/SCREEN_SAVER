@@ -261,10 +261,19 @@ namespace SCREEN_SAVER
                     if (distSq >= clockRadius * clockRadius)
                     {
                         p.HasBlasted = true;
+                        
+                        // Calculate exact intersection point on the perimeter
+                        float dist = (float)Math.Sqrt(distSq);
+                        float scale = clockRadius / dist;
+                        PointF blastPos = new PointF(
+                            centerPoint.X + dx * scale,
+                            centerPoint.Y + dy * scale
+                        );
+
                         // Use projectile color for blast
                         blasts.Add(new Blast 
                         { 
-                            position = p.Position, 
+                            position = blastPos, 
                             startTime = now,
                             color = p.Color
                         });
