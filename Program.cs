@@ -76,24 +76,13 @@ namespace SCREEN_SAVER
 
         static void ShowScreensaver()
         {
-            // Create a form for each screen
-            AnalogClockForm[] forms = new AnalogClockForm[Screen.AllScreens.Length];
-            for (int i = 0; i < Screen.AllScreens.Length; i++)
-            {
-                forms[i] = new AnalogClockForm(Screen.AllScreens[i].Bounds);
-                forms[i].Show();
-            }
+            // Run one form covering all screens
+            Rectangle virtualBounds = SystemInformation.VirtualScreen;
+            Rectangle primaryBounds = Screen.PrimaryScreen.Bounds;
 
-            // If only one screen, run the application with that form
-            if (forms.Length == 1)
-            {
-                Application.Run(forms[0]);
-            }
-            else
-            {
-                // For multiple screens, run without a main form
-                Application.Run();
-            }
+            AnalogClockForm form = new AnalogClockForm(virtualBounds, primaryBounds);
+            form.Show();
+            Application.Run(form);
         }
     }
 }

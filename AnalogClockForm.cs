@@ -12,6 +12,7 @@ namespace SCREEN_SAVER
         // For preview window handle
         private readonly IntPtr previewHandle = IntPtr.Zero;
         private readonly bool isPreview = false;
+        private Rectangle? targetClockArea = null;
 
         private System.Windows.Forms.Timer timer;
         private PointF centerPoint;
@@ -21,7 +22,7 @@ namespace SCREEN_SAVER
         {
             public DateTime startTime;
             public double angle;
-            public bool hasExploded;
+            public bool hasBlasted;
         }
 
         private class Blast
@@ -85,6 +86,17 @@ namespace SCREEN_SAVER
             InitializeClock();
         }
 
+        public AnalogClockForm(Rectangle bounds, Rectangle clockArea)
+        {
+            InitializeComponent();
+            this.Bounds = bounds;
+            this.StartPosition = FormStartPosition.Manual;
+            this.targetClockArea = clockArea;
+            this.isPreview = false;
+            this.WindowState = FormWindowState.Normal;
+            InitializeClock();
+        }
+
         private void InitializeComponent()
         {
             SuspendLayout();
@@ -134,8 +146,18 @@ namespace SCREEN_SAVER
 
         private void UpdateClockDimensions()
         {
-            centerPoint = new PointF(ClientSize.Width / 2f, ClientSize.Height / 2f);
-            clockRadius = Math.Min(ClientSize.Width, ClientSize.Height) / 3f;
+            if (targetClockArea.HasValue)
+            {
+                float centerX = targetClockArea.Value.X - this.Location.X + targetClockArea.Value.Width / 2f;
+                float centerY = targetClockArea.Value.Y - this.Location.Y + targetClockArea.Value.Height / 2f;
+                centerPoint = new PointF(centerX, centerY);
+                clockRadius = Math.Min(targetClockArea.Value.Width, targetClockArea.Value.Height) / 3f;
+            }
+            else
+            {
+                centerPoint = new PointF(ClientSize.Width / 2f, ClientSize.Height / 2f);
+                clockRadius = Math.Min(ClientSize.Width, ClientSize.Height) / 3f;
+            }
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -150,9 +172,9 @@ namespace SCREEN_SAVER
             // Check for impacts
             foreach (var p in projectiles)
             {
-                if (!p.hasExploded && (now - p.startTime).TotalSeconds >= 1.0)
+                if (!p.hasBlasted && (now - p.startTime).TotalSeconds >= 1.0)
                 {
-                    p.hasExploded = true;
+                    p.hasBlasted = true;
                     float x = centerPoint.X + (float)Math.Sin(p.angle) * clockRadius;
                     float y = centerPoint.Y - (float)Math.Cos(p.angle) * clockRadius;
                     
@@ -286,8 +308,6 @@ namespace SCREEN_SAVER
         private void DrawBlasts(Graphics g)
         {
             DateTime now = DateTime.Now;
-            // Create a copy to avoid modification exception if accessed from other threads (though Timer is UI thread)
-            // But here we are just reading.
             for (int i = 0; i < blasts.Count; i++)
             {
                 var blast = blasts[i];
@@ -322,7 +342,7 @@ namespace SCREEN_SAVER
                 var p = projectiles[i];
                 double t = (now - p.startTime).TotalSeconds;
                 
-                if (t > 1 + trailDuration)
+                if (t > 60 + trailDuration)
                 {
                     projectiles.RemoveAt(i);
                     continue;
@@ -333,7 +353,6 @@ namespace SCREEN_SAVER
                     double trailT = t - (step * (trailDuration / trailSteps));
                     
                     if (trailT < 0) continue;
-                    if (trailT > 1) continue;
 
                     float distance = (float)(clockRadius * trailT);
                     PointF pos = new PointF(
@@ -377,8 +396,19 @@ namespace SCREEN_SAVER
                 totalWidth += g.MeasureString(part.text, font, PointF.Empty, format).Width;
             }
             
-            float x = (ClientSize.Width - totalWidth) / 2;
-            float y = ClientSize.Height - g.MeasureString("A", font).Height - (ClientSize.Height * 0.05f);
+            float x = centerPoint.X - totalWidth / 2;
+            float y;
+
+            if (targetClockArea.HasValue)
+            {
+                // Position at bottom of the target clock area (main screen)
+                float bottomOfClockArea = targetClockArea.Value.Y - this.Location.Y + targetClockArea.Value.Height;
+                y = bottomOfClockArea - g.MeasureString("A", font).Height - (targetClockArea.Value.Height * 0.05f);
+            }
+            else
+            {
+                y = ClientSize.Height - g.MeasureString("A", font).Height - (ClientSize.Height * 0.05f);
+            }
 
             foreach (var (text, color) in parts)
             {
