@@ -206,10 +206,10 @@ namespace SCREEN_SAVER
 
             // Hour hand shadow
             double hourAngle = ((now.Hour % 12) * 30 + now.Minute * 0.5) * Math.PI / 180;
-            DrawHand(g, hourAngle, clockRadius * 0.5f, 10, Color.Gray, 2, 2);
+            DrawHand(g, hourAngle, clockRadius * 0.5f, 12, Color.Gray, 2, 2, 2);
 
             // Hour hand
-            DrawHand(g, hourAngle, clockRadius * 0.5f, 8, Color.White);
+            DrawHand(g, hourAngle, clockRadius * 0.5f, 10, Color.White, 0, 0, 2);
 
             // Minute hand shadow
             double minuteAngle = (now.Minute * 6 + now.Second * 0.1) * Math.PI / 180;
@@ -226,13 +226,13 @@ namespace SCREEN_SAVER
             DrawHand(g, secondAngle, clockRadius * 0.8f, 2, Color.Red);
         }
 
-        private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0)
+        private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0, float taperFactor = 4)
         {
             PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
             PointF end = new PointF(center.X + (float)Math.Sin(angle) * length, center.Y - (float)Math.Cos(angle) * length);
 
             float halfWidth = width / 2;
-            float endHalfWidth = width / 4; // Taper to thinner at the end for vintage look
+            float endHalfWidth = width / taperFactor; // Taper factor for vintage look
 
             PointF centerLeft = new PointF(center.X + (float)Math.Sin(angle - Math.PI / 2) * halfWidth, center.Y - (float)Math.Cos(angle - Math.PI / 2) * halfWidth);
             PointF centerRight = new PointF(center.X + (float)Math.Sin(angle + Math.PI / 2) * halfWidth, center.Y - (float)Math.Cos(angle + Math.PI / 2) * halfWidth);
