@@ -331,21 +331,34 @@ namespace SCREEN_SAVER
 
         private void DrawClockFace(Graphics g)
         {
+            if (float.IsNaN(centerPoint.X) || float.IsNaN(centerPoint.Y) || float.IsNaN(clockRadius)) return;
+
             DateTime now = DateTime.Now;
             long ticks = now.Ticks;
             float rotationSlow = (ticks / 200000f) % 360;
             float rotationFast = -(ticks / 100000f) % 360;
 
             // 1. Fill with a deep space gradient
-            using (GraphicsPath path = new GraphicsPath())
+            try
             {
-                path.AddEllipse(centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
-                               clockRadius * 2, clockRadius * 2);
-                using (PathGradientBrush brush = new PathGradientBrush(path))
+                using (GraphicsPath path = new GraphicsPath())
                 {
-                    brush.CenterColor = Color.FromArgb(20, 30, 50); 
-                    brush.SurroundColors = new Color[] { Color.Black };
-                    g.FillPath(brush, path);
+                    path.AddEllipse(centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
+                                   clockRadius * 2, clockRadius * 2);
+                    using (PathGradientBrush brush = new PathGradientBrush(path))
+                    {
+                        brush.CenterColor = Color.FromArgb(20, 30, 50); 
+                        brush.SurroundColors = new Color[] { Color.Black };
+                        g.FillPath(brush, path);
+                    }
+                }
+            }
+            catch
+            {
+                using (SolidBrush brush = new SolidBrush(Color.Black))
+                {
+                    g.FillEllipse(brush, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
+                                   clockRadius * 2, clockRadius * 2);
                 }
             }
 
@@ -497,7 +510,8 @@ namespace SCREEN_SAVER
 
         private void DrawNumbers(Graphics g)
         {
-            using Font font = new Font("Consolas", clockRadius / 10, FontStyle.Bold);
+            float fontSize = Math.Max(5, clockRadius / 10);
+            using Font font = new Font("Consolas", fontSize, FontStyle.Bold);
             using SolidBrush brush = new SolidBrush(Color.FromArgb(180, 0, 255, 255));
 
             for (int hour = 1; hour <= 12; hour++)
