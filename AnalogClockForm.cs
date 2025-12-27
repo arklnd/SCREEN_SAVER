@@ -43,6 +43,7 @@ namespace SCREEN_SAVER
         private List<Blast> blasts;
         private Random random = new Random();
         private int lastSecond = -1;
+        private Color currentPulseColor = Color.Cyan;
 
         // Import user32.dll for preview window
         [DllImport("user32.dll")]
@@ -218,6 +219,8 @@ namespace SCREEN_SAVER
                     random.Next(100, 255),
                     random.Next(100, 255),
                     random.Next(100, 255));
+                
+                currentPulseColor = projColor;
 
                 projectiles.Add(new Projectile 
                 { 
@@ -403,14 +406,14 @@ namespace SCREEN_SAVER
                         if (alpha < 0) alpha = 0;
                         
                         // Energy shield effect
-                        using (Pen blastPen = new Pen(Color.FromArgb(alpha, Color.Cyan), 4))
+                        using (Pen blastPen = new Pen(Color.FromArgb(alpha, blast.color), 4))
                         {
                             g.DrawArc(blastPen, centerPoint.X - clockRadius, centerPoint.Y - clockRadius,
                                      clockRadius * 2, clockRadius * 2, angle - sweep/2, sweep);
                         }
                         
                         // Hexagon fragment effect at impact
-                        using (SolidBrush hexBrush = new SolidBrush(Color.FromArgb(alpha / 2, Color.Cyan)))
+                        using (SolidBrush hexBrush = new SolidBrush(Color.FromArgb(alpha / 2, blast.color)))
                         {
                             PointF[] hex = new PointF[6];
                             for(int k=0; k<6; k++) {
@@ -432,11 +435,11 @@ namespace SCREEN_SAVER
             float pulseIntensity = (float)Math.Pow(1.0f - t, 8); // Sharp decay
             float pulse = 8 + 12 * pulseIntensity; 
             
-            using (SolidBrush brush = new SolidBrush(Color.FromArgb((int)(150 + 100 * pulseIntensity), 0, 255, 255)))
+            using (SolidBrush brush = new SolidBrush(Color.FromArgb((int)(150 + 100 * pulseIntensity), currentPulseColor)))
             {
                 g.FillEllipse(brush, centerPoint.X - pulse, centerPoint.Y - pulse, pulse * 2, pulse * 2);
             }
-            using (Pen reactorPen = new Pen(Color.FromArgb(100, 0, 255, 255), 2))
+            using (Pen reactorPen = new Pen(Color.FromArgb(100, currentPulseColor), 2))
             {
                 g.DrawEllipse(reactorPen, centerPoint.X - 15, centerPoint.Y - 15, 30, 30);
             }
