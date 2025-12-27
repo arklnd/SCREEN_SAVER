@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace SCREEN_SAVER
 {
@@ -15,6 +16,15 @@ namespace SCREEN_SAVER
         private System.Windows.Forms.Timer timer;
         private PointF centerPoint;
         private float clockRadius;
+
+        private struct Projectile
+        {
+            public DateTime startTime;
+            public double angle;
+        }
+
+        private List<Projectile> projectiles;
+        private int lastSecond = -1;
 
         // Import user32.dll for preview window
         [DllImport("user32.dll")]
@@ -99,11 +109,13 @@ namespace SCREEN_SAVER
 
         private void InitializeClock()
         {
-            // Set up timer to update clock every second
+            // Set up timer to update clock every 20ms for smooth animation
             timer = new System.Windows.Forms.Timer();
-            timer.Interval = 1000; // 1 second
+            timer.Interval = 20; // 20ms for smoother updates
             timer.Tick += Timer_Tick;
             timer.Start();
+
+            projectiles = new List<Projectile>();
 
             // Calculate clock center and radius
             UpdateClockDimensions();
@@ -117,6 +129,12 @@ namespace SCREEN_SAVER
 
         private void Timer_Tick(object sender, EventArgs e)
         {
+            DateTime now = DateTime.Now;
+            if (now.Second != lastSecond)
+            {
+                projectiles.Add(new Projectile { startTime = now, angle = now.Second * 6 * Math.PI / 180 });
+                lastSecond = now.Second;
+            }
             Invalidate(); // Redraw the clock
         }
 
@@ -218,14 +236,51 @@ namespace SCREEN_SAVER
             // Minute hand
             DrawHand(g, minuteAngle, clockRadius * 0.7f, 4, Color.White);
 
-            // Second hand shadow
-            double secondAngle = now.Second * 6 * Math.PI / 180;
-            DrawHand(g, secondAngle, clockRadius * 0.8f, 4, Color.DarkRed, 1, 1);
-
-            // Second hand
-            DrawHand(g, secondAngle, clockRadius * 0.8f, 2, Color.Red);
+            // Draw projectiles instead of second hand
+            DrawProjectiles(g);
         }
 
+        private void DrawProjectiles(Graphics g)
+        {
+            DateTime now = DateTime.Now;
+            int trailSteps = 20;
+            double trailDuration = 0.3;
+
+            for (int i = projectiles.Count - 1; i >= 0; i--)
+            {
+                var p = projectiles[i];
+                double t = (now - p.startTime).TotalSeconds;
+                
+                if (t > 1 + trailDuration)
+                {
+                    projectiles.RemoveAt(i);
+                    continue;
+                }
+
+                for (int step = 0; step < trailSteps; step++)
+                {
+                    double trailT = t - (step * (trailDuration / trailSteps));
+                    
+                    if (trailT < 0) continue;
+                    if (trailT > 1) continue;
+
+                    float distance = (float)(clockRadius * trailT);
+                    PointF pos = new PointF(
+                        centerPoint.X + (float)Math.Sin(p.angle) * distance,
+                        centerPoint.Y - (float)Math.Cos(p.angle) * distance
+                    );
+
+                    int alpha = (int)(255 * (1.0 - (double)step / trailSteps));
+                    float size = 6f * (float)(1.0 - (double)step / trailSteps);
+                    if (size < 1) size = 1;
+
+                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(alpha, Color.Red)))
+                    {
+                        g.FillEllipse(brush, pos.X - size / 2, pos.Y - size / 2, size, size);
+                    }
+                }
+            }
+        }
         private void DrawHand(Graphics g, double angle, float length, float width, Color color, float dx = 0, float dy = 0, float taperFactor = 4)
         {
             PointF center = new PointF(centerPoint.X + dx, centerPoint.Y + dy);
