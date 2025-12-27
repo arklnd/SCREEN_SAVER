@@ -194,10 +194,14 @@ namespace SCREEN_SAVER
             for (int i = projectiles.Count - 1; i >= 0; i--)
             {
                 var p = projectiles[i];
+                double age = (now - p.CreationTime).TotalSeconds;
                 
-                // Update trail
+                // Update trail - monotonically decreasing length
+                int maxTrail = (int)(20 * (1.0 - age / 30.0));
+                if (maxTrail < 0) maxTrail = 0;
+
                 p.Trail.Add(p.Position);
-                if (p.Trail.Count > 20) p.Trail.RemoveAt(0);
+                while (p.Trail.Count > maxTrail && p.Trail.Count > 0) p.Trail.RemoveAt(0);
 
                 // Update position
                 p.Position.X += p.Velocity.X * dt;
@@ -209,7 +213,7 @@ namespace SCREEN_SAVER
                 if (p.Position.Y < 0) { p.Position.Y = 0; p.Velocity.Y = -p.Velocity.Y; }
                 if (p.Position.Y > ClientSize.Height) { p.Position.Y = ClientSize.Height; p.Velocity.Y = -p.Velocity.Y; }
 
-                // Blast logic
+                // Blast logic (escaping clock face)
                 if (!p.HasBlasted)
                 {
                     float dx = p.Position.X - centerPoint.X;
@@ -218,23 +222,25 @@ namespace SCREEN_SAVER
                     if (distSq >= clockRadius * clockRadius)
                     {
                         p.HasBlasted = true;
-                        Color blastColor = Color.FromArgb(
-                            random.Next(150, 255),
-                            random.Next(150, 255),
-                            random.Next(150, 255));
-                            
+                        // Use projectile color for blast
                         blasts.Add(new Blast 
                         { 
                             position = p.Position, 
                             startTime = now,
-                            color = blastColor
+                            color = p.Color
                         });
                     }
                 }
 
-                // Lifespan 30s
-                if ((now - p.CreationTime).TotalSeconds > 30)
+                // Lifespan 30s - end with a blast
+                if (age > 30)
                 {
+                    blasts.Add(new Blast 
+                    { 
+                        position = p.Position, 
+                        startTime = now,
+                        color = p.Color
+                    });
                     projectiles.RemoveAt(i);
                 }
             }
