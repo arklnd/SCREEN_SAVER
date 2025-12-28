@@ -14,6 +14,12 @@ namespace SCREEN_SAVER
         private CheckBox chkRandomColors = null!;
         private Button btnColor = null!;
         private Panel pnlColorPreview = null!;
+        
+        // Thunder Controls
+        private TrackBar tbJitter = null!;
+        private TrackBar tbBranchProb = null!;
+        private TrackBar tbBranchDepth = null!;
+
         private Button btnSave = null!;
         private Button btnReset = null!;
         private Button btnCancel = null!;
@@ -28,7 +34,7 @@ namespace SCREEN_SAVER
         private void InitializeComponent()
         {
             this.Text = "Screensaver Settings";
-            this.Size = new Size(400, 450);
+            this.Size = new Size(400, 650); // Increased height
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -87,6 +93,56 @@ namespace SCREEN_SAVER
             tbTrail.TickFrequency = 20;
             tbTrail.Bounds = new Rectangle(margin + labelWidth, gy, controlWidth, 45);
             grpAnimation.Controls.Add(tbTrail);
+
+            y += 190;
+
+            // Thunder Group
+            GroupBox grpThunder = new GroupBox();
+            grpThunder.Text = "Thunder Effect";
+            grpThunder.Bounds = new Rectangle(10, y, 360, 180);
+            this.Controls.Add(grpThunder);
+
+            gy = 20;
+
+            // Jitter
+            Label lblJitter = new Label();
+            lblJitter.Text = "Jitter:";
+            lblJitter.Bounds = new Rectangle(margin, gy, labelWidth, 20);
+            grpThunder.Controls.Add(lblJitter);
+
+            tbJitter = new TrackBar();
+            tbJitter.Minimum = 0;
+            tbJitter.Maximum = 20;
+            tbJitter.TickFrequency = 2;
+            tbJitter.Bounds = new Rectangle(margin + labelWidth, gy, controlWidth, 45);
+            grpThunder.Controls.Add(tbJitter);
+            gy += 50;
+
+            // Branch Probability
+            Label lblBranchProb = new Label();
+            lblBranchProb.Text = "Branch Prob:";
+            lblBranchProb.Bounds = new Rectangle(margin, gy, labelWidth, 20);
+            grpThunder.Controls.Add(lblBranchProb);
+
+            tbBranchProb = new TrackBar();
+            tbBranchProb.Minimum = 0;
+            tbBranchProb.Maximum = 100; // 0.0 to 1.0
+            tbBranchProb.TickFrequency = 10;
+            tbBranchProb.Bounds = new Rectangle(margin + labelWidth, gy, controlWidth, 45);
+            grpThunder.Controls.Add(tbBranchProb);
+            gy += 50;
+
+            // Branch Depth
+            Label lblBranchDepth = new Label();
+            lblBranchDepth.Text = "Branch Depth:";
+            lblBranchDepth.Bounds = new Rectangle(margin, gy, labelWidth, 20);
+            grpThunder.Controls.Add(lblBranchDepth);
+
+            tbBranchDepth = new TrackBar();
+            tbBranchDepth.Minimum = 1;
+            tbBranchDepth.Maximum = 8;
+            tbBranchDepth.Bounds = new Rectangle(margin + labelWidth, gy, controlWidth, 45);
+            grpThunder.Controls.Add(tbBranchDepth);
 
             y += 190;
 
@@ -172,6 +228,11 @@ namespace SCREEN_SAVER
             chkRandomColors.Checked = settings.UseRandomColors;
             pnlColorPreview.BackColor = settings.FixedColor;
             UpdateColorControls();
+
+            // Thunder
+            tbJitter.Value = (int)settings.ThunderJitter;
+            tbBranchProb.Value = (int)(settings.BranchProbability * 100);
+            tbBranchDepth.Value = settings.BranchDepth;
         }
 
         private void UpdateColorControls()
@@ -212,6 +273,11 @@ namespace SCREEN_SAVER
             
             settings.UseRandomColors = chkRandomColors.Checked;
             settings.FixedColor = pnlColorPreview.BackColor;
+
+            // Thunder
+            settings.ThunderJitter = tbJitter.Value;
+            settings.BranchProbability = tbBranchProb.Value / 100.0f;
+            settings.BranchDepth = tbBranchDepth.Value;
 
             settings.Save();
             this.Close();

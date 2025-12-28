@@ -13,6 +13,11 @@ namespace SCREEN_SAVER
         public bool UseRandomColors { get; set; } = true;
         public Color FixedColor { get; set; } = Color.Cyan;
 
+        // Thunder Settings
+        public float ThunderJitter { get; set; } = 5.0f;
+        public float BranchProbability { get; set; } = 0.4f;
+        public int BranchDepth { get; set; } = 5;
+
         private const string RegistryPath = @"SOFTWARE\Arklnd\ArcReactorScreensaver";
 
         public void Reset()
@@ -23,6 +28,9 @@ namespace SCREEN_SAVER
             ClockSize = 3.5f;
             UseRandomColors = true;
             FixedColor = Color.Cyan;
+            ThunderJitter = 5.0f;
+            BranchProbability = 0.4f;
+            BranchDepth = 5;
         }
 
         public void Save()
@@ -37,6 +45,9 @@ namespace SCREEN_SAVER
                     key.SetValue("ClockSize", ClockSize);
                     key.SetValue("UseRandomColors", UseRandomColors ? 1 : 0);
                     key.SetValue("FixedColor", FixedColor.ToArgb());
+                    key.SetValue("ThunderJitter", ThunderJitter);
+                    key.SetValue("BranchProbability", BranchProbability);
+                    key.SetValue("BranchDepth", BranchDepth);
                 }
             }
             catch (Exception ex)
@@ -60,6 +71,9 @@ namespace SCREEN_SAVER
                         settings.ClockSize = Convert.ToSingle(key.GetValue("ClockSize", 3.5f));
                         settings.UseRandomColors = Convert.ToInt32(key.GetValue("UseRandomColors", 1)) == 1;
                         settings.FixedColor = Color.FromArgb(Convert.ToInt32(key.GetValue("FixedColor", Color.Cyan.ToArgb())));
+                        settings.ThunderJitter = Convert.ToSingle(key.GetValue("ThunderJitter", 5.0f));
+                        settings.BranchProbability = Convert.ToSingle(key.GetValue("BranchProbability", 0.4f));
+                        settings.BranchDepth = Convert.ToInt32(key.GetValue("BranchDepth", 5));
                     }
                 }
             }

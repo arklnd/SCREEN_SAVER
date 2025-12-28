@@ -659,7 +659,7 @@ namespace SCREEN_SAVER
                 for (int i = 0; i < p.Trail.Count; i++)
                 {
                     // Reduced jitter to emphasize length over width
-                    float jitter = 5f; 
+                    float jitter = settings.ThunderJitter; 
                     float jx = (float)(random.NextDouble() * 2 - 1) * jitter;
                     float jy = (float)(random.NextDouble() * 2 - 1) * jitter;
                     lightningPoints[i] = new PointF(p.Trail[i].X + jx, p.Trail[i].Y + jy);
@@ -692,13 +692,13 @@ namespace SCREEN_SAVER
 
                     // Branching
                     // Spawn branches randomly along the trail - increased probability
-                    if (i < lightningPoints.Length - 2 && random.NextDouble() < 0.4) 
+                    if (i < lightningPoints.Length - 2 && random.NextDouble() < settings.BranchProbability) 
                     {
                         float dx = lightningPoints[i+1].X - lightningPoints[i].X;
                         float dy = lightningPoints[i+1].Y - lightningPoints[i].Y;
                         
                         // Branch out with higher depth (5 levels)
-                        DrawLightningBranch(g, lightningPoints[i], new PointF(dx, dy), p.Color, alpha, 5);
+                        DrawLightningBranch(g, lightningPoints[i], new PointF(dx, dy), p.Color, alpha, settings.BranchDepth);
                     }
                 }
 
