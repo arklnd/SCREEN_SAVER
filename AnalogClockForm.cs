@@ -536,7 +536,7 @@ namespace SCREEN_SAVER
             for (int hour = 1; hour <= 12; hour++)
             {
                 double angle = ((hour % 12) * 30) * Math.PI / 180; 
-                float numberRadius = clockRadius - 70;
+                float numberRadius = clockRadius * 0.80f;
 
                 PointF numberPoint = new PointF(
                     centerPoint.X + (float)Math.Sin(angle) * numberRadius,
