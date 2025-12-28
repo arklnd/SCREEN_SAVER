@@ -44,6 +44,11 @@ namespace SCREEN_SAVER
                         {
                             ShowPreview(secondArgument);
                         }
+                        else
+                        {
+                            MessageBox.Show("Preview mode requires a window handle.", "Expanding Circle Screensaver",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
                         break;
                     case "/s":
                         // Full-screen screensaver mode
