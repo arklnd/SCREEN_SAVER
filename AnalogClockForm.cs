@@ -17,7 +17,7 @@ namespace SCREEN_SAVER
         private readonly bool isPreview = false;
         private Rectangle? targetClockArea = null;
 
-        private CancellationTokenSource cancellationTokenSource;
+        private CancellationTokenSource cancellationTokenSource = null!;
         private readonly object syncLock = new object();
         private PointF centerPoint;
         private float clockRadius;
@@ -39,11 +39,12 @@ namespace SCREEN_SAVER
             public Color color;
         }
 
-        private List<Projectile> projectiles;
-        private List<Blast> blasts;
+        private List<Projectile> projectiles = new List<Projectile>();
+        private List<Blast> blasts = new List<Blast>();
         private Random random = new Random();
         private int lastSecond = -1;
         private Color currentPulseColor = Color.Cyan;
+        private Settings settings = null!;
 
         // Import user32.dll for preview window
         [DllImport("user32.dll")]
@@ -139,6 +140,7 @@ namespace SCREEN_SAVER
 
         private void InitializeClock()
         {
+            settings = Settings.Load();
             projectiles = new List<Projectile>();
             blasts = new List<Blast>();
 
@@ -150,17 +152,19 @@ namespace SCREEN_SAVER
 
         private void UpdateClockDimensions()
         {
+            if (settings == null) return;
+
             if (targetClockArea.HasValue)
             {
                 float centerX = targetClockArea.Value.X - this.Location.X + targetClockArea.Value.Width / 2f;
                 float centerY = targetClockArea.Value.Y - this.Location.Y + targetClockArea.Value.Height / 2f;
                 centerPoint = new PointF(centerX, centerY);
-                clockRadius = Math.Min(targetClockArea.Value.Width, targetClockArea.Value.Height) / 3.5f;
+                clockRadius = Math.Min(targetClockArea.Value.Width, targetClockArea.Value.Height) / settings.ClockSize;
             }
             else
             {
                 centerPoint = new PointF(ClientSize.Width / 2f, ClientSize.Height / 2f);
-                clockRadius = Math.Min(ClientSize.Width, ClientSize.Height) / 3.5f;
+                clockRadius = Math.Min(ClientSize.Width, ClientSize.Height) / settings.ClockSize;
             }
         }
 
@@ -211,14 +215,22 @@ namespace SCREEN_SAVER
             if (now.Second != lastSecond)
             {
                 double angle = now.Second * 6 * Math.PI / 180;
-                float speed = clockRadius * 1.2f; // Adjusted speed for real-time update
+                float speed = clockRadius * settings.SpeedMultiplier; // Adjusted speed for real-time update
                 float vx = (float)Math.Sin(angle) * speed;
                 float vy = -(float)Math.Cos(angle) * speed;
                 
-                Color projColor = Color.FromArgb(
-                    random.Next(100, 255),
-                    random.Next(100, 255),
-                    random.Next(100, 255));
+                Color projColor;
+                if (settings.UseRandomColors)
+                {
+                    projColor = Color.FromArgb(
+                        random.Next(100, 255),
+                        random.Next(100, 255),
+                        random.Next(100, 255));
+                }
+                else
+                {
+                    projColor = settings.FixedColor;
+                }
                 
                 currentPulseColor = projColor;
 
@@ -235,12 +247,12 @@ namespace SCREEN_SAVER
 
             for (int i = projectiles.Count - 1; i >= 0; i--)
             {
-                const double projectileLifespan = 10.0; // seconds 
+                double projectileLifespan = settings.ProjectileLifespan; // seconds 
                 var p = projectiles[i];
                 double age = (now - p.CreationTime).TotalSeconds;
                 
                 // Update trail - monotonically decreasing length
-                int maxTrail = (int)(50 * (1.0 - age / projectileLifespan));
+                int maxTrail = (int)(settings.TrailLength * (1.0 - age / projectileLifespan));
                 if (maxTrail < 0) maxTrail = 0;
 
                 p.Trail.Add(p.Position);

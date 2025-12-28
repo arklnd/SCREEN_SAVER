@@ -1,0 +1,63 @@
+using Microsoft.Win32;
+using System;
+using System.Drawing;
+
+namespace SCREEN_SAVER
+{
+    public class Settings
+    {
+        public float SpeedMultiplier { get; set; } = 1.2f;
+        public float ProjectileLifespan { get; set; } = 10.0f;
+        public int TrailLength { get; set; } = 50;
+        public float ClockSize { get; set; } = 3.5f; // Divisor: smaller is bigger
+        public bool UseRandomColors { get; set; } = true;
+        public Color FixedColor { get; set; } = Color.Cyan;
+
+        private const string RegistryPath = @"SOFTWARE\Arklnd\ExpandingCircleScreensaver";
+
+        public void Save()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RegistryPath))
+                {
+                    key.SetValue("SpeedMultiplier", SpeedMultiplier);
+                    key.SetValue("ProjectileLifespan", ProjectileLifespan);
+                    key.SetValue("TrailLength", TrailLength);
+                    key.SetValue("ClockSize", ClockSize);
+                    key.SetValue("UseRandomColors", UseRandomColors ? 1 : 0);
+                    key.SetValue("FixedColor", FixedColor.ToArgb());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to save settings: " + ex.Message);
+            }
+        }
+
+        public static Settings Load()
+        {
+            Settings settings = new Settings();
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistryPath))
+                {
+                    if (key != null)
+                    {
+                        settings.SpeedMultiplier = Convert.ToSingle(key.GetValue("SpeedMultiplier", 1.2f));
+                        settings.ProjectileLifespan = Convert.ToSingle(key.GetValue("ProjectileLifespan", 10.0f));
+                        settings.TrailLength = Convert.ToInt32(key.GetValue("TrailLength", 50));
+                        settings.ClockSize = Convert.ToSingle(key.GetValue("ClockSize", 3.5f));
+                        settings.UseRandomColors = Convert.ToInt32(key.GetValue("UseRandomColors", 1)) == 1;
+                        settings.FixedColor = Color.FromArgb(Convert.ToInt32(key.GetValue("FixedColor", Color.Cyan.ToArgb())));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to load settings: " + ex.Message);
+            }
+            return settings;
+        }
+    }
+}

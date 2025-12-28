@@ -11,10 +11,12 @@ namespace SCREEN_SAVER
         [STAThread]
         static void Main(string[] args)
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            
-            if (args.Length > 0)
+            try
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                
+                if (args.Length > 0)
             {
                 string firstArgument = args[0].ToLower().Trim();
                 string? secondArgument = null;
@@ -59,13 +61,16 @@ namespace SCREEN_SAVER
                 // No arguments - run as screensaver
                 ShowScreensaver();
             }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}\n\nStack Trace:\n{ex.StackTrace}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         static void ShowSettings()
         {
-            MessageBox.Show("This screensaver has no configurable settings.",
-                "Expanding Circle Screensaver",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Application.Run(new SettingsForm());
         }
 
         static void ShowPreview(string previewHandle)
