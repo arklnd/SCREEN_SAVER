@@ -15,6 +15,16 @@ namespace SCREEN_SAVER
 
         private const string RegistryPath = @"SOFTWARE\Arklnd\ExpandingCircleScreensaver";
 
+        public void Reset()
+        {
+            SpeedMultiplier = 1.2f;
+            ProjectileLifespan = 10.0f;
+            TrailLength = 50;
+            ClockSize = 3.5f;
+            UseRandomColors = true;
+            FixedColor = Color.Cyan;
+        }
+
         public void Save()
         {
             try

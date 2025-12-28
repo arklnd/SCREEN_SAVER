@@ -15,6 +15,7 @@ namespace SCREEN_SAVER
         private Button btnColor = null!;
         private Panel pnlColorPreview = null!;
         private Button btnSave = null!;
+        private Button btnReset = null!;
         private Button btnCancel = null!;
 
         public SettingsForm()
@@ -131,6 +132,12 @@ namespace SCREEN_SAVER
             y += 140;
 
             // Buttons
+            btnReset = new Button();
+            btnReset.Text = "Reset";
+            btnReset.Bounds = new Rectangle(20, y, 80, 30);
+            btnReset.Click += BtnReset_Click;
+            this.Controls.Add(btnReset);
+
             btnSave = new Button();
             btnSave.Text = "Save";
             btnSave.DialogResult = DialogResult.OK;
@@ -186,6 +193,12 @@ namespace SCREEN_SAVER
             {
                 pnlColorPreview.BackColor = cd.Color;
             }
+        }
+
+        private void BtnReset_Click(object sender, EventArgs e)
+        {
+            settings.Reset();
+            LoadSettingsToControls();
         }
 
         private void BtnSave_Click(object sender, EventArgs e)
