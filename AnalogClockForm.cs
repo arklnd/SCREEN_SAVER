@@ -658,8 +658,8 @@ namespace SCREEN_SAVER
                 PointF[] lightningPoints = new PointF[p.Trail.Count];
                 for (int i = 0; i < p.Trail.Count; i++)
                 {
-                    // High jitter everywhere to break the smooth curve
-                    float jitter = 12f; 
+                    // Reduced jitter to emphasize length over width
+                    float jitter = 5f; 
                     float jx = (float)(random.NextDouble() * 2 - 1) * jitter;
                     float jy = (float)(random.NextDouble() * 2 - 1) * jitter;
                     lightningPoints[i] = new PointF(p.Trail[i].X + jx, p.Trail[i].Y + jy);
@@ -667,8 +667,8 @@ namespace SCREEN_SAVER
                 
                 // Ensure tip is somewhat near the actual position but still jagged
                 lightningPoints[lightningPoints.Length - 1] = new PointF(
-                    p.Position.X + (float)(random.NextDouble() * 8 - 4),
-                    p.Position.Y + (float)(random.NextDouble() * 8 - 4)
+                    p.Position.X + (float)(random.NextDouble() * 4 - 2),
+                    p.Position.Y + (float)(random.NextDouble() * 4 - 2)
                 );
 
                 for (int i = 0; i < lightningPoints.Length - 1; i++)
@@ -702,25 +702,24 @@ namespace SCREEN_SAVER
                     }
                 }
 
-                // Draw Head (Spark) - Jagged burst
+                // Draw Head (Sharp Tip)
                 PointF head = lightningPoints[lightningPoints.Length - 1];
-                using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(200, p.Color)))
+                
+                // Use velocity for direction to make it sharp and directional
+                float angle = (float)Math.Atan2(p.Velocity.Y, p.Velocity.X);
+                float tipLen = 18f;
+                
+                // Sharp needle shape
+                PointF[] tipShape = new PointF[] {
+                    new PointF(head.X + (float)Math.Cos(angle) * tipLen, head.Y + (float)Math.Sin(angle) * tipLen), // Tip
+                    new PointF(head.X + (float)Math.Cos(angle + 1.8) * 2.5f, head.Y + (float)Math.Sin(angle + 1.8) * 2.5f), // Side
+                    new PointF(head.X - (float)Math.Cos(angle) * 2, head.Y - (float)Math.Sin(angle) * 2), // Back
+                    new PointF(head.X + (float)Math.Cos(angle - 1.8) * 2.5f, head.Y + (float)Math.Sin(angle - 1.8) * 2.5f)  // Side
+                };
+
+                using (SolidBrush tipBrush = new SolidBrush(Color.White))
                 {
-                    // Draw a few random lines crossing at the head instead of a ball
-                    for(int k=0; k<3; k++) {
-                        float len = 15f;
-                        float ang = (float)(random.NextDouble() * Math.PI * 2);
-                        g.FillPolygon(glowBrush, new PointF[] {
-                            new PointF(head.X + (float)Math.Cos(ang)*len, head.Y + (float)Math.Sin(ang)*len),
-                            new PointF(head.X + (float)Math.Cos(ang+2)*2, head.Y + (float)Math.Sin(ang+2)*2),
-                            new PointF(head.X - (float)Math.Cos(ang)*len, head.Y - (float)Math.Sin(ang)*len),
-                            new PointF(head.X - (float)Math.Cos(ang+2)*2, head.Y - (float)Math.Sin(ang+2)*2)
-                        });
-                    }
-                }
-                using (SolidBrush coreBrush = new SolidBrush(Color.White))
-                {
-                    g.FillEllipse(coreBrush, head.X - 3, head.Y - 3, 6, 6);
+                    g.FillPolygon(tipBrush, tipShape);
                 }
             }
         }
@@ -739,12 +738,12 @@ namespace SCREEN_SAVER
             for (int b = 0; b < branchCount; b++)
             {
                 // Branch deviates from main path
-                // Tighter angle for forward momentum: +/- 10 to 45 degrees (0.17 to 0.78 radians)
-                double deviation = (random.NextDouble() * 0.6 + 0.17) * (random.Next(2) == 0 ? 1 : -1); 
+                // Tighter angle for forward momentum: +/- 5 to 25 degrees (0.08 to 0.43 radians)
+                double deviation = (random.NextDouble() * 0.35 + 0.08) * (random.Next(2) == 0 ? 1 : -1); 
                 double angle = baseAngle + deviation;
                 
-                // Length decreases with depth
-                float length = (float)(random.NextDouble() * (10 + depth * 3) + 5);
+                // Length increases to emphasize length
+                float length = (float)(random.NextDouble() * (15 + depth * 4) + 10);
                 
                 PointF end = new PointF(
                     start.X + (float)Math.Cos(angle) * length,
