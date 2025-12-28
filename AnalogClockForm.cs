@@ -658,11 +658,18 @@ namespace SCREEN_SAVER
                 PointF[] lightningPoints = new PointF[p.Trail.Count];
                 for (int i = 0; i < p.Trail.Count; i++)
                 {
-                    float jitter = (i == p.Trail.Count - 1) ? 2f : 6f; // Less jitter at head
+                    // High jitter everywhere to break the smooth curve
+                    float jitter = 12f; 
                     float jx = (float)(random.NextDouble() * 2 - 1) * jitter;
                     float jy = (float)(random.NextDouble() * 2 - 1) * jitter;
                     lightningPoints[i] = new PointF(p.Trail[i].X + jx, p.Trail[i].Y + jy);
                 }
+                
+                // Ensure tip is somewhat near the actual position but still jagged
+                lightningPoints[lightningPoints.Length - 1] = new PointF(
+                    p.Position.X + (float)(random.NextDouble() * 8 - 4),
+                    p.Position.Y + (float)(random.NextDouble() * 8 - 4)
+                );
 
                 for (int i = 0; i < lightningPoints.Length - 1; i++)
                 {
@@ -670,7 +677,7 @@ namespace SCREEN_SAVER
                     int alpha = (int)(255 * progress);
                     if (alpha > 255) alpha = 255;
                     
-                    // Main Bolt Glow
+                    // Main Bolt
                     using (Pen glowPen = new Pen(Color.FromArgb(alpha / 2, p.Color), 4f + 4f * progress))
                     {
                         glowPen.StartCap = LineCap.Round;
@@ -678,37 +685,87 @@ namespace SCREEN_SAVER
                         g.DrawLine(glowPen, lightningPoints[i], lightningPoints[i+1]);
                     }
 
-                    // Core Bolt (White/Bright)
                     using (Pen corePen = new Pen(Color.FromArgb(alpha, Color.White), 1f + 1.5f * progress))
                     {
                         g.DrawLine(corePen, lightningPoints[i], lightningPoints[i+1]);
                     }
 
-                    // Occasional branching
-                    if (i < lightningPoints.Length - 5 && random.Next(15) == 0)
+                    // Branching
+                    // Spawn branches randomly along the trail - increased probability
+                    if (i < lightningPoints.Length - 2 && random.NextDouble() < 0.4) 
                     {
-                        PointF branchStart = lightningPoints[i];
-                        PointF branchEnd = new PointF(
-                            branchStart.X + (float)(random.NextDouble() * 30 - 15),
-                            branchStart.Y + (float)(random.NextDouble() * 30 - 15)
-                        );
-                        using (Pen branchPen = new Pen(Color.FromArgb(alpha / 2, p.Color), 1))
-                        {
-                            g.DrawLine(branchPen, branchStart, branchEnd);
-                        }
+                        float dx = lightningPoints[i+1].X - lightningPoints[i].X;
+                        float dy = lightningPoints[i+1].Y - lightningPoints[i].Y;
+                        
+                        // Branch out with higher depth (5 levels)
+                        DrawLightningBranch(g, lightningPoints[i], new PointF(dx, dy), p.Color, alpha, 5);
                     }
                 }
 
-                // Draw Head (Spark)
+                // Draw Head (Spark) - Jagged burst
                 PointF head = lightningPoints[lightningPoints.Length - 1];
-                using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(150, p.Color)))
+                using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(200, p.Color)))
                 {
-                    g.FillEllipse(glowBrush, head.X - 6, head.Y - 6, 12, 12);
+                    // Draw a few random lines crossing at the head instead of a ball
+                    for(int k=0; k<3; k++) {
+                        float len = 15f;
+                        float ang = (float)(random.NextDouble() * Math.PI * 2);
+                        g.FillPolygon(glowBrush, new PointF[] {
+                            new PointF(head.X + (float)Math.Cos(ang)*len, head.Y + (float)Math.Sin(ang)*len),
+                            new PointF(head.X + (float)Math.Cos(ang+2)*2, head.Y + (float)Math.Sin(ang+2)*2),
+                            new PointF(head.X - (float)Math.Cos(ang)*len, head.Y - (float)Math.Sin(ang)*len),
+                            new PointF(head.X - (float)Math.Cos(ang+2)*2, head.Y - (float)Math.Sin(ang+2)*2)
+                        });
+                    }
                 }
                 using (SolidBrush coreBrush = new SolidBrush(Color.White))
                 {
                     g.FillEllipse(coreBrush, head.X - 3, head.Y - 3, 6, 6);
                 }
+            }
+        }
+
+        private void DrawLightningBranch(Graphics g, PointF start, PointF mainDir, Color color, int alpha, int depth)
+        {
+            if (depth <= 0 || alpha < 10) return;
+
+            // Calculate angle of main direction
+            double baseAngle = Math.Atan2(mainDir.Y, mainDir.X);
+            
+            // Determine number of sub-branches at this node (1 to 3)
+            int branchCount = random.Next(1, 3);
+            if (depth >= 4) branchCount = random.Next(1, 4); // More branches at root levels
+
+            for (int b = 0; b < branchCount; b++)
+            {
+                // Branch deviates from main path
+                // Tighter angle for forward momentum: +/- 10 to 45 degrees (0.17 to 0.78 radians)
+                double deviation = (random.NextDouble() * 0.6 + 0.17) * (random.Next(2) == 0 ? 1 : -1); 
+                double angle = baseAngle + deviation;
+                
+                // Length decreases with depth
+                float length = (float)(random.NextDouble() * (10 + depth * 3) + 5);
+                
+                PointF end = new PointF(
+                    start.X + (float)Math.Cos(angle) * length,
+                    start.Y + (float)Math.Sin(angle) * length
+                );
+
+                // Draw branch segment
+                using (Pen branchPen = new Pen(Color.FromArgb(alpha / 2, color), Math.Max(0.5f, depth * 0.6f)))
+                {
+                    g.DrawLine(branchPen, start, end);
+                }
+                
+                // Draw core for branch (thinner)
+                using (Pen branchCore = new Pen(Color.FromArgb(alpha / 2, Color.White), 0.5f))
+                {
+                    g.DrawLine(branchCore, start, end);
+                }
+
+                // Recursive call for sub-branches
+                // Pass the NEW direction (end - start) to maintain forward flow relative to the branch
+                DrawLightningBranch(g, end, new PointF(end.X - start.X, end.Y - start.Y), color, (int)(alpha * 0.75), depth - 1);
             }
         }
 
