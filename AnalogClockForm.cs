@@ -365,6 +365,24 @@ namespace SCREEN_SAVER
                 g.DrawEllipse(rimPen, centerPoint.X - clockRadius * 0.975f, centerPoint.Y - clockRadius * 0.975f, clockRadius * 1.95f, clockRadius * 1.95f);
             }
 
+            // Rivets (Bolts)
+            int rivetCount = 24;
+            float rivetRadius = clockRadius * 0.975f;
+            float rivetSize = clockRadius * 0.015f;
+            using (SolidBrush rivetBrush = new SolidBrush(Color.FromArgb(60, 60, 65)))
+            using (Pen rivetBorder = new Pen(Color.FromArgb(20, 20, 25), 1))
+            {
+                for (int i = 0; i < rivetCount; i++)
+                {
+                    double angle = i * (360.0 / rivetCount) * Math.PI / 180.0;
+                    float rx = centerPoint.X + (float)Math.Cos(angle) * rivetRadius;
+                    float ry = centerPoint.Y + (float)Math.Sin(angle) * rivetRadius;
+                    
+                    g.FillEllipse(rivetBrush, rx - rivetSize, ry - rivetSize, rivetSize * 2, rivetSize * 2);
+                    g.DrawEllipse(rivetBorder, rx - rivetSize, ry - rivetSize, rivetSize * 2, rivetSize * 2);
+                }
+            }
+
             // 2. Glowing Segments (The "Power Cells")
             int segmentCount = 12;
             float innerR = clockRadius * 0.45f;
