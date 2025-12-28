@@ -328,7 +328,7 @@ namespace SCREEN_SAVER
                 DrawClockFace(e.Graphics);
 
                 // Draw hour markers
-                // DrawHourMarkers(e.Graphics);
+                DrawHourMarkers(e.Graphics);
 
                 // Draw numbers
                 DrawNumbers(e.Graphics);
