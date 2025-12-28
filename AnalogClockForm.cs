@@ -646,32 +646,68 @@ namespace SCREEN_SAVER
         {
             foreach (var p in projectiles)
             {
-                // Draw trail with connected lines for smoothness
-                if (p.Trail.Count > 1)
+                if (p.Trail.Count < 2)
                 {
-                    for (int i = 0; i < p.Trail.Count - 1; i++)
+                    // Just draw head if no trail yet
+                    using (SolidBrush brush = new SolidBrush(Color.White))
+                        g.FillEllipse(brush, p.Position.X - 2, p.Position.Y - 2, 4, 4);
+                    continue;
+                }
+
+                // Generate jittered points for lightning effect
+                PointF[] lightningPoints = new PointF[p.Trail.Count];
+                for (int i = 0; i < p.Trail.Count; i++)
+                {
+                    float jitter = (i == p.Trail.Count - 1) ? 2f : 6f; // Less jitter at head
+                    float jx = (float)(random.NextDouble() * 2 - 1) * jitter;
+                    float jy = (float)(random.NextDouble() * 2 - 1) * jitter;
+                    lightningPoints[i] = new PointF(p.Trail[i].X + jx, p.Trail[i].Y + jy);
+                }
+
+                for (int i = 0; i < lightningPoints.Length - 1; i++)
+                {
+                    float progress = (float)i / lightningPoints.Length;
+                    int alpha = (int)(255 * progress);
+                    if (alpha > 255) alpha = 255;
+                    
+                    // Main Bolt Glow
+                    using (Pen glowPen = new Pen(Color.FromArgb(alpha / 2, p.Color), 4f + 4f * progress))
                     {
-                        float progress = (float)i / p.Trail.Count;
-                        float nextProgress = (float)(i + 1) / p.Trail.Count;
-                        
-                        float alpha = 255f * progress;
-                        float size = 6f * progress;
-                        if (size < 0.5f) size = 0.5f; // Minimum visible size
-                        
-                        // Draw a line segment between points
-                        using (Pen pen = new Pen(Color.FromArgb((int)alpha, p.Color), size))
+                        glowPen.StartCap = LineCap.Round;
+                        glowPen.EndCap = LineCap.Round;
+                        g.DrawLine(glowPen, lightningPoints[i], lightningPoints[i+1]);
+                    }
+
+                    // Core Bolt (White/Bright)
+                    using (Pen corePen = new Pen(Color.FromArgb(alpha, Color.White), 1f + 1.5f * progress))
+                    {
+                        g.DrawLine(corePen, lightningPoints[i], lightningPoints[i+1]);
+                    }
+
+                    // Occasional branching
+                    if (i < lightningPoints.Length - 5 && random.Next(15) == 0)
+                    {
+                        PointF branchStart = lightningPoints[i];
+                        PointF branchEnd = new PointF(
+                            branchStart.X + (float)(random.NextDouble() * 30 - 15),
+                            branchStart.Y + (float)(random.NextDouble() * 30 - 15)
+                        );
+                        using (Pen branchPen = new Pen(Color.FromArgb(alpha / 2, p.Color), 1))
                         {
-                            pen.StartCap = LineCap.Round;
-                            pen.EndCap = LineCap.Round;
-                            g.DrawLine(pen, p.Trail[i], p.Trail[i+1]);
+                            g.DrawLine(branchPen, branchStart, branchEnd);
                         }
                     }
                 }
-                
-                // Draw head
-                using (SolidBrush brush = new SolidBrush(p.Color))
+
+                // Draw Head (Spark)
+                PointF head = lightningPoints[lightningPoints.Length - 1];
+                using (SolidBrush glowBrush = new SolidBrush(Color.FromArgb(150, p.Color)))
                 {
-                    g.FillEllipse(brush, p.Position.X - 3, p.Position.Y - 3, 6, 6);
+                    g.FillEllipse(glowBrush, head.X - 6, head.Y - 6, 12, 12);
+                }
+                using (SolidBrush coreBrush = new SolidBrush(Color.White))
+                {
+                    g.FillEllipse(coreBrush, head.X - 3, head.Y - 3, 6, 6);
                 }
             }
         }
