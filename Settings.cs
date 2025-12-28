@@ -13,7 +13,7 @@ namespace SCREEN_SAVER
         public bool UseRandomColors { get; set; } = true;
         public Color FixedColor { get; set; } = Color.Cyan;
 
-        private const string RegistryPath = @"SOFTWARE\Arklnd\ExpandingCircleScreensaver";
+        private const string RegistryPath = @"SOFTWARE\Arklnd\ArcReactorScreensaver";
 
         public void Reset()
         {
